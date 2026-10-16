@@ -353,7 +353,7 @@ def remove_acl(net_connect, collector, module, acl, current_acls):
             name=remove_acl.__name__,
             step_result={
                 "changed": changed,
-                "msg": f"ACL {acl.id} removal operation completed with state '{module.params['state']}'.",
+                "msg": msg,
                 "command": cmd,
                 "acl_present": False,
                 "acl_bound": False,

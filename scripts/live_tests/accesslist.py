@@ -77,60 +77,61 @@ def run_module_with_params(params):
     return fake_module._last_exit or {}
 
 
-# --- Your params dict ---
-args = build_parser().parse_args()
+if __name__ == "__main__":
+    # --- Your params dict ---
+    args = build_parser().parse_args()
 
-if args.verbose:
-    logging.basicConfig(
-        level=logging.DEBUG,
-        stream=sys.stdout,
-        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    )
-    netmiko_logger = logging.getLogger("netmiko")
-    netmiko_logger.setLevel(logging.DEBUG)
-    netmiko_logger.propagate = True
+    if args.verbose:
+        logging.basicConfig(
+            level=logging.DEBUG,
+            stream=sys.stdout,
+            format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        )
+        netmiko_logger = logging.getLogger("netmiko")
+        netmiko_logger.setLevel(logging.DEBUG)
+        netmiko_logger.propagate = True
 
-params = {
-    "host": args.host,
-    "port": 22,
-    "username": args.username,
-    "password": args.password,
-    "enable_password": args.enable_password,
-    "command_level": "enable",
-    "command": None,
-    "commands": ["show system-info", "show users", "show vlan"],
-    "state": "update",
-    "acls": {
-        "id": "1000",
-        "name": "ACL3",
-        "vid": "10",
-        "rule_type": "combined",
-        "direction": "ingress",
-        "rules": [
-            {
-                "seq": 10,
-                "action": "permit",
-                "logging": "enable",
-                "sip": "10.0.0.0",
-                "sip_mask": "255.255.0.0",
-                "dip": "10.0.0.0",
-                "dip_mask": "255.255.0.0",
-                "protocol": 6,
-                "dport": 9100
-            },
-            {
-                "seq": 20,
-                "action": "permit",
-                "logging": "enable"
-            }
-        ]
+    params = {
+        "host": args.host,
+        "port": 22,
+        "username": args.username,
+        "password": args.password,
+        "enable_password": args.enable_password,
+        "command_level": "enable",
+        "command": None,
+        "commands": ["show system-info", "show users", "show vlan"],
+        "state": "update",
+        "acls": {
+            "id": "1000",
+            "name": "ACL3",
+            "vid": "10",
+            "rule_type": "combined",
+            "direction": "ingress",
+            "rules": [
+                {
+                    "seq": 10,
+                    "action": "permit",
+                    "logging": "enable",
+                    "sip": "10.0.0.0",
+                    "sip_mask": "255.255.0.0",
+                    "dip": "10.0.0.0",
+                    "dip_mask": "255.255.0.0",
+                    "protocol": 6,
+                    "dport": 9100
+                },
+                {
+                    "seq": 20,
+                    "action": "permit",
+                    "logging": "enable"
+                }
+            ]
+        }
     }
-}
 
-# --- Run the module ---
-try:
-    results = run_module_with_params(params)
-    print(json.dumps(results, indent=2))
-except RuntimeError as e:
-    print(json.dumps({"failed": True, "msg": str(e)}, indent=2))
-    sys.exit(1)
+    # --- Run the module ---
+    try:
+        results = run_module_with_params(params)
+        print(json.dumps(results, indent=2))
+    except RuntimeError as e:
+        print(json.dumps({"failed": True, "msg": str(e)}, indent=2))
+        sys.exit(1)

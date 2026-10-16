@@ -1,11 +1,20 @@
 import unittest
 import sys
 import os
+import types
 
 # Ensure repository root is in sys.path
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 if REPO_ROOT not in sys.path:
     sys.path.insert(0, REPO_ROOT)
+
+# Make the ansible-collection-style imports used by the source modules resolve
+# to the in-repo plugins/ package (ansible_collections/... is empty in this checkout).
+_COLLECTION = "ansible_collections.lachlanstone.jetstream.plugins"
+if _COLLECTION not in sys.modules:
+    _collection_pkg = types.ModuleType(_COLLECTION)
+    _collection_pkg.__path__ = [os.path.join(REPO_ROOT, "plugins")]
+    sys.modules[_COLLECTION] = _collection_pkg
 
 from plugins.module_utils.collector import ResultCollector
 from plugins.modules.jetstream_user import parse_user_output, manage_users
