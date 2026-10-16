@@ -165,8 +165,43 @@ if logging_enabled:
     stream_handler.setFormatter(fmt=formatter)
     logger.addHandler(hdlr=stream_handler)
 
-def set_general_information(net_connect, system, collector):
-    """Set general information on the switch (hostname, location, contact)."""
+def read_system_info(net_connect):
+    """Read current system info from the switch via ``show system-info``.
+
+    Returns a dict with any of ``hostname``/``location``/``contact`` that
+    could be parsed from the output.  Returns an empty dict when the command
+    fails or nothing recognizable is parsed, in which case callers fall back
+    to applying the desired config (the current, safe behavior).
+    """
+    try:
+        output = send_command(net_connect, cmd="show system-info")
+    except Exception:  # pragma: no cover - defensive; switch may reject the command
+        logger.info("Unable to read current system info; applying desired config.")
+        return {}
+
+    info = {}
+    for line in output.splitlines():
+        if ":" not in line:
+            continue
+        key, _, value = line.partition(":")
+        key = key.strip().lower().replace(" ", "_")
+        value = value.strip()
+        if key in ("hostname", "system_name", "name") and value:
+            info["hostname"] = value
+        elif key in ("location", "system_location") and value:
+            info["location"] = value
+        elif key in ("contact", "system_contact") and value:
+            info["contact"] = value
+    return info
+
+
+def set_general_information(net_connect, system, collector, check_mode=False):
+    """Set general information on the switch (hostname, location, contact).
+
+    Args:
+        check_mode: When True, report what *would* change without sending
+            commands to the device.
+    """
     changed = False
     params_to_commands: dict[str, str] = {
         "hostname": "hostname",
@@ -174,16 +209,26 @@ def set_general_information(net_connect, system, collector):
         "contact": "contact-info",
     }
     commands_sent = []
+    current = read_system_info(net_connect) if not check_mode else {}
+
     for param, cmd_prefix in params_to_commands.items():
         value = system.get(param)
-        if value:
-            cmd = f"{cmd_prefix} {value}"
+        if not value:
+            logger.info("No %s provided, skipping %s configuration.", param, param)
+            continue
+
+        if not check_mode and current.get(param) == value:
+            logger.info("%s already set to %s, skipping.", param, value)
+            continue
+
+        cmd = f"{cmd_prefix} {value}"
+        if check_mode:
+            logger.info("Check mode: would set %s with command: %s", param, cmd)
+        else:
             logger.info("Setting %s with command: %s", param, cmd)
             send_command(net_connect, cmd=cmd)
-            commands_sent.append(cmd)
-            changed = True
-        else:
-            logger.info("No %s provided, skipping %s configuration.", param, param)
+        commands_sent.append(cmd)
+        changed = True
 
     collector.add_step(
         name=set_general_information.__name__,
@@ -198,25 +243,41 @@ def set_general_information(net_connect, system, collector):
         },
     )
 
-def configure_dns(net_connect, dns, collector):
+def configure_dns(net_connect, dns, collector, check_mode=False):
+    """Configure DNS servers on the switch.
+
+    Args:
+        check_mode: When True, report what *would* change without sending
+            commands to the device.
+    """
     if dns.get("primary"):
         cmd = f"ip dns-address primary {dns.get('primary')}"
         if dns.get("secondary"):
             msg = f"Configuring DNS: primary={dns.get('primary')}, secondary={dns.get('secondary')}"
             cmd += f" secondary {dns.get('secondary')}"
         else:
-            msg = "Configuring DNS: primary={dns.get('primary')}, no secondary provided"
-        send_command(net_connect, cmd=cmd)
+            msg = f"Configuring DNS: primary={dns.get('primary')}, no secondary provided"
+        if check_mode:
+            logger.info("Check mode: %s", msg)
+        else:
+            logger.info("%s", msg)
+            send_command(net_connect, cmd=cmd)
         collector.add_step(
             name=configure_dns.__name__,
             step_result={
-                "changed": True,
+                "changed": False if check_mode else True,
                 "msg": msg,
                 "commands_sent": [cmd],
             },
         )
 
-def configure_ntp(net_connect, ntp, collector):
+def configure_ntp(net_connect, ntp, collector, check_mode=False):
+    """Configure NTP on the switch.
+
+    Args:
+        check_mode: When True, report what *would* change without sending
+            commands to the device.
+    """
     utc = ntp.get("ntp_utc")
     ntp_servers = ntp.get("ntp_servers") or []
     fetch_time = ntp.get("ntp_fetch_time")
@@ -232,11 +293,15 @@ def configure_ntp(net_connect, ntp, collector):
             cmd_parts.append(str(fetch_time))
         cmd_parts.extend(ntp_servers[2:5])
         cmd = " ".join(cmd_parts)
-        send_command(net_connect, cmd=cmd)
+        if check_mode:
+            logger.info("Check mode: would configure NTP: %s", cmd)
+        else:
+            logger.info("Configuring NTP: %s", cmd)
+            send_command(net_connect, cmd=cmd)
         collector.add_step(
             name=configure_ntp.__name__,
             step_result={
-                "changed": True,
+                "changed": False if check_mode else True,
                 "msg": f"Configuring NTP: servers={ntp_servers}, fetch_time={fetch_time}",
                 "commands_sent": [cmd],
             },
@@ -265,8 +330,9 @@ def run_module(module):
         net_connect.enable()
         net_connect.config_mode()
         system = module.params.get("system", {})
-        set_general_information(net_connect, system, collector)
-        configure_dns(net_connect, module.params.get("dns", {}), collector)
+        set_general_information(net_connect, system, collector, module.check_mode)
+        configure_dns(net_connect, module.params.get("dns", {}), collector, module.check_mode)
+        configure_ntp(net_connect, module.params.get("ntp", {}), collector, module.check_mode)
     result = collector.return_info()
     module.exit_json(**result)
 
