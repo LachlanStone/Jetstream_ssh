@@ -1,0 +1,24 @@
+namespace: lachlanstone
+name: jetstream
+version: 1.0.0
+readme: README.md
+authors:
+  - "LachlanStone"
+license:
+  - MIT
+tags:
+  - networking
+  - omada
+  - tplink
+  - jetstream
+repository: "https://github.com/LachlanStone/Jetstream_ssh"
+description: "Ansible modules for TP-Link JetStream (Omada) switches over SSH"
+build_ignore:
+  - .git*
+  - .mypy_cache
+  - .tokensave
+  - .snippets
+  - .vscode
+  - "*.log"
+  - __pycache__
+  - scripts

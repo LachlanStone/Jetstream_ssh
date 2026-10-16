@@ -1,0 +1,24 @@
+Value SYSTEM_DESCRIPTION (.*)
+Value SYSTEM_NAME (.*)
+Value SYSTEM_LOCATION (.*)
+Value CONTACT_INFORMATION (.*)
+Value HARDWARE_VERSION (.*)
+Value SOFTWARE_VERSION (.*)
+Value BOOTLOADER_VERSION (.*)
+Value MAC_ADDRESS (.*)
+Value SERIAL_NUMBER (.*)
+Value SYSTEM_TIME (.*)
+Value RUNNING_TIME (.*)
+
+Start
+  ^System Description\s+-\s+(.*) -> Record SYSTEM_DESCRIPTION="$1"
+  ^System Name\s+-\s+(.*) -> Record SYSTEM_NAME="$1"
+  ^System Location\s+-\s*(.*) -> Record SYSTEM_LOCATION="$1"
+  ^Contact Information\s+-\s+(.*) -> Record CONTACT_INFORMATION="$1"
+  ^Hardware Version\s+-\s+(.*) -> Record HARDWARE_VERSION="$1"
+  ^Software Version\s+-\s+(.*) -> Record SOFTWARE_VERSION="$1"
+  ^Bootloader Version\s+-\s+(.*) -> Record BOOTLOADER_VERSION="$1"
+  ^Mac Address\s+-\s+(.*) -> Record MAC_ADDRESS="$1"
+  ^Serial Number\s+-\s+(.*) -> Record SERIAL_NUMBER="$1"
+  ^System Time\s+-\s+(.*) -> Record SYSTEM_TIME="$1"
+  ^Running Time\s+-\s+(.*) -> Record RUNNING_TIME="$1"

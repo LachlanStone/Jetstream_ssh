@@ -1,0 +1,2 @@
+Template, Hostname, Platform, Command
+tplink_jetstream_show_system-info.textfsm, .*, tplink, show system-info
