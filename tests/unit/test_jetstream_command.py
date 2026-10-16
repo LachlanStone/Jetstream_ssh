@@ -10,12 +10,23 @@ if REPO_ROOT not in sys.path:
     sys.path.insert(0, REPO_ROOT)
 
 # Make the ansible-collection-style imports used by the source modules resolve
-# to the in-repo plugins/ package (ansible_collections/... is empty in this checkout).
+# to the in-repo plugins/ directory.  ``ansible_collections/`` is not tracked by
+# git (it only held empty directories), so register the whole package chain as
+# namespace packages in ``sys.modules``; this works even in a fresh checkout
+# where ``ansible_collections/`` does not exist on disk.
 _COLLECTION = "ansible_collections.lachlanstone.jetstream.plugins"
-if _COLLECTION not in sys.modules:
-    _collection_pkg = types.ModuleType(_COLLECTION)
-    _collection_pkg.__path__ = [os.path.join(REPO_ROOT, "plugins")]
-    sys.modules[_COLLECTION] = _collection_pkg
+_REAL_PLUGINS = os.path.join(REPO_ROOT, "plugins")
+for _pkg in (
+    "ansible_collections",
+    "ansible_collections.lachlanstone",
+    "ansible_collections.lachlanstone.jetstream",
+    _COLLECTION,
+):
+    if _pkg not in sys.modules:
+        _m = types.ModuleType(_pkg)
+        _m.__path__ = []
+        sys.modules[_pkg] = _m
+sys.modules[_COLLECTION].__path__ = [_REAL_PLUGINS]
 
 from plugins.modules.jetstream_command import parse_output, send_commands
 
