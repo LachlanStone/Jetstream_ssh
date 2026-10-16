@@ -201,7 +201,7 @@ from ansible_collections.lachlanstone.jetstream.plugins.module_utils.acls.acls_p
     protocol_names,
 )
 from ansible_collections.lachlanstone.jetstream.plugins.module_utils.acls.acl_classes import (
-    ACL
+    ACL,
 )
 
 from ansible_collections.lachlanstone.jetstream.plugins.module_utils.collector import (
@@ -224,6 +224,7 @@ if logging_enabled and not logger.handlers:
     stream_handler.setLevel(level=logging.INFO)
     stream_handler.setFormatter(fmt=formatter)
     logger.addHandler(hdlr=stream_handler)
+
 
 def unbind_acl(net_connect, collector, module, acl):
     # Component: Set up the command to unbind the ACL and initialize variables for state, check mode, presence, and bound status.
@@ -324,7 +325,9 @@ def remove_acl(net_connect, collector, module, acl, current_acls):
             changed = True
             msg = f"ACL {acl.id} has been removed."
             if isinstance(current_acls, dict):
-                new_acls = {k: v for k, v in current_acls.items() if str(k) != str(acl.id)}
+                new_acls = {
+                    k: v for k, v in current_acls.items() if str(k) != str(acl.id)
+                }
         else:
             msg = f"ACL {acl.id} is currently not present."
     else:
@@ -443,11 +446,6 @@ def create_and_update_acl(net_connect, collector, module, acl, current_acls):
 
 def create_and_update_acl_rules(net_connect, collector, module, acl, current_acls):
     logger.info(f"Creating and updating rules for ACL {acl.id}...")
-    # TODO:
-    # 1. Buildout all the functions that are currently available for ACLs and their rules
-    # DONE 2. Add the ability to update existing rules, and remove existing rules
-    # DONE 3. Implement all features required for special project
-
     if not acl.rules:
         msg = f"No rules provided for ACL {acl.id}. Skipping rule configuration."
         logger.info(msg)
