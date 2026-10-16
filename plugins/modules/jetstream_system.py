@@ -54,6 +54,13 @@ options:
       contact:
         description: System contact string.
         type: str
+  lldp:
+    description: LLDP (Link Layer Discovery Protocol) configuration.
+    type: dict
+    suboptions:
+      enabled:
+        description: Enable or disable LLDP globally on the switch.
+        type: bool
   dns:
     description: DNS server settings.
     type: dict
@@ -67,22 +74,22 @@ options:
   ntp:
     description:
       - NTP settings.
-      - Accepted by the argument specification but not applied by the module yet.
+      - Applied when C(type) is set to V(ntp), C(ntp_utc), at least 2 servers in C(ntp_servers), and C(ntp_fetch_time) are all provided.
     type: dict
     suboptions:
       type:
-        description: NTP mode.
+        description: NTP mode. Must be set to V(ntp) to apply.
         type: str
       ntp_utc:
-        description: UTC offset used for NTP time.
+        description: UTC offset used for NTP time (e.g., V(+00:00) or V(+10:00)).
         type: str
       ntp_servers:
-        description: List of NTP servers.
+        description: List of NTP servers (minimum 2 servers, up to 5).
         type: list
         elements: str
         default: []
       ntp_fetch_time:
-        description: Interval at which the switch fetches time.
+        description: Interval in minutes at which the switch polls NTP servers.
         type: int
 notes:
   - Supports check mode.
@@ -109,6 +116,29 @@ EXAMPLES = r"""
     dns:
       primary: 192.0.2.53
       secondary: 198.51.100.53
+
+- name: Configure NTP synchronization
+  lachlanstone.jetstream.jetstream_system:
+    host: 192.0.2.10
+    username: admin
+    password: "{{ vault_switch_password }}"
+    enable_password: "{{ vault_switch_enable_password }}"
+    ntp:
+      type: ntp
+      ntp_utc: "+00:00"
+      ntp_servers:
+        - 192.0.2.123
+        - 198.51.100.123
+      ntp_fetch_time: 60
+
+- name: Enable global LLDP
+  lachlanstone.jetstream.jetstream_system:
+    host: 192.0.2.10
+    username: admin
+    password: "{{ vault_switch_password }}"
+    enable_password: "{{ vault_switch_enable_password }}"
+    lldp:
+      enabled: true
 """
 
 RETURN = r"""
@@ -235,6 +265,7 @@ def set_general_information(net_connect, system, collector, check_mode=False):
         step_result={
             "changed": changed,
             "msg": f"Configured system info: hostname={system.get('hostname')}, location={system.get('location')}, contact={system.get('contact')}" if changed else "No system info provided, nothing to configure",
+            "commands": commands_sent,
             "commands_sent": commands_sent,
             "system_info": system,
             "hostname": system.get("hostname"),
@@ -250,6 +281,12 @@ def configure_dns(net_connect, dns, collector, check_mode=False):
         check_mode: When True, report what *would* change without sending
             commands to the device.
     """
+    if not dns:
+        return
+
+    if dns.get("secondary") and not dns.get("primary"):
+        raise ValueError("DNS configuration requires 'primary' server when 'secondary' is specified.")
+
     if dns.get("primary"):
         cmd = f"ip dns-address primary {dns.get('primary')}"
         if dns.get("secondary"):
@@ -267,6 +304,7 @@ def configure_dns(net_connect, dns, collector, check_mode=False):
             step_result={
                 "changed": False if check_mode else True,
                 "msg": msg,
+                "commands": [cmd],
                 "commands_sent": [cmd],
             },
         )
@@ -278,35 +316,79 @@ def configure_ntp(net_connect, ntp, collector, check_mode=False):
         check_mode: When True, report what *would* change without sending
             commands to the device.
     """
-    utc = ntp.get("ntp_utc")
-    ntp_servers = ntp.get("ntp_servers") or []
-    fetch_time = ntp.get("ntp_fetch_time")
+    if not ntp or not ntp.get("type"):
+        return
 
-    if ntp.get("type") == "ntp" and utc and len(ntp_servers) >= 2 and fetch_time is not None:
-        cmd_parts = [
-            "system-time",
-            "ntp",
-            utc,
-            *ntp_servers[:2],
-        ]
-        if fetch_time is not None:
-            cmd_parts.append(str(fetch_time))
-        cmd_parts.extend(ntp_servers[2:5])
-        cmd = " ".join(cmd_parts)
-        if check_mode:
-            logger.info("Check mode: would configure NTP: %s", cmd)
-        else:
-            logger.info("Configuring NTP: %s", cmd)
-            send_command(net_connect, cmd=cmd)
-        collector.add_step(
-            name=configure_ntp.__name__,
-            step_result={
+    if ntp.get("type") != "ntp":
+        logger.info("NTP type is '%s' (not 'ntp'), skipping NTP configuration.", ntp.get("type"))
+        return
+
+    utc = ntp.get("ntp_utc")
+    if not utc:
+        raise ValueError("NTP configuration requires 'ntp_utc' (e.g., '+00:00').")
+
+    ntp_servers = ntp.get("ntp_servers") or []
+    if len(ntp_servers) < 2:
+        raise ValueError(
+            f"NTP configuration on TP-Link JetStream CLI requires at least 2 servers in 'ntp_servers' (got {len(ntp_servers)})."
+        )
+
+    fetch_time = ntp.get("ntp_fetch_time")
+    if fetch_time is None:
+        raise ValueError("NTP configuration requires 'ntp_fetch_time' (polling interval in minutes).")
+
+    cmd_parts = [
+        "system-time",
+        "ntp",
+        utc,
+        *ntp_servers[:2],
+        str(fetch_time),
+        *ntp_servers[2:5],
+    ]
+    cmd = " ".join(cmd_parts)
+    if check_mode:
+        logger.info("Check mode: would configure NTP: %s", cmd)
+    else:
+        logger.info("Configuring NTP: %s", cmd)
+        send_command(net_connect, cmd=cmd)
+    collector.add_step(
+        name=configure_ntp.__name__,
+        step_result={
                 "changed": False if check_mode else True,
                 "msg": f"Configuring NTP: servers={ntp_servers}, fetch_time={fetch_time}",
+                "commands": [cmd],
                 "commands_sent": [cmd],
             },
         )
 
+def configure_lldp(net_connect, lldp, collector, check_mode=False):
+    """Configure LLDP on the switch.
+
+    Args:
+        check_mode: When True, report what *would* change without sending
+            commands to the device.
+    """
+    if not lldp or lldp.get("enabled") is None:
+        logger.info("No LLDP configuration provided, skipping.")
+        return
+
+    enabled = lldp.get("enabled")
+    cmd = "lldp run" if enabled else "no lldp run"
+    msg = f"Configuring LLDP: enabled={enabled}"
+    if check_mode:
+        logger.info("Check mode: %s", msg)
+    else:
+        logger.info("%s", msg)
+        send_command(net_connect, cmd=cmd)
+    collector.add_step(
+        name=configure_lldp.__name__,
+        step_result={
+            "changed": False if check_mode else True,
+            "msg": msg,
+            "commands": [cmd],
+            "commands_sent": [cmd],
+        },
+    )
 
 def run_module(module):
     """Establish connection"""
@@ -333,16 +415,9 @@ def run_module(module):
         set_general_information(net_connect, system, collector, module.check_mode)
         configure_dns(net_connect, module.params.get("dns", {}), collector, module.check_mode)
         configure_ntp(net_connect, module.params.get("ntp", {}), collector, module.check_mode)
+        configure_lldp(net_connect, module.params.get("lldp", {}), collector, module.check_mode)
     result = collector.return_info()
     module.exit_json(**result)
-
-
-
-
-
-
-
-
 
 def main():
     """Ansible module argument specification and entry point."""
@@ -360,6 +435,13 @@ def main():
                     "hostname": {"type": "str", "required": False, "default": None},
                     "location": {"type": "str", "required": False, "default": None},
                     "contact": {"type": "str", "required": False, "default": None},
+                },
+            },
+            "lldp": {
+                "type": "dict",
+                "required": False,
+                "options": {
+                    "enabled": {"type": "bool", "required": False, "default": None},
                 },
             },
             "dns": {
@@ -389,7 +471,6 @@ def main():
                     },
                 },
             },
-
         },
         supports_check_mode=True,
     )
