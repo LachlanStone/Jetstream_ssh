@@ -34,7 +34,7 @@ from plugins.modules.jetstream_save import save_configuration
 class TestJetstreamSave(unittest.TestCase):
     def test_save_configuration_check_mode(self):
         collector = ResultCollector()
-        collector.set_basic_info(switch="192.0.2.10", check_mode=True)
+        collector.set_basic_info(switch="192.0.2.10", check_mode=True, verbosity=4)
 
         changed = save_configuration(
             net_connect=None,
@@ -49,6 +49,7 @@ class TestJetstreamSave(unittest.TestCase):
         self.assertFalse(steps[0]["changed"])
         self.assertEqual(steps[0]["command"], "copy running-config startup-config")
         self.assertIn("copy running-config startup-config", steps[0]["commands"])
+        self.assertEqual(collector.return_info()["commands_sent"], [])
 
     def test_save_configuration_live_mode_custom_cmd(self):
         collector = ResultCollector()

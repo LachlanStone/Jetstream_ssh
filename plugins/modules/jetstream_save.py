@@ -147,7 +147,7 @@ def save_configuration(net_connect, cmd, collector, check_mode=False):
             "changed": False if check_mode else True,
             "msg": msg,
             "commands": [cmd],
-            "commands_sent": [cmd],
+            "commands_sent": [] if check_mode else [cmd],
             "command": cmd,
             "stdout": output,
         },

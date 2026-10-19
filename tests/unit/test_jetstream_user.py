@@ -70,7 +70,7 @@ guest1           guest            enable
 
     def test_manage_users_check_mode(self):
         collector = ResultCollector()
-        collector.set_basic_info(switch="192.0.2.10", check_mode=True)
+        collector.set_basic_info(switch="192.0.2.10", check_mode=True, verbosity=4)
 
         user_entries = [
             {
@@ -103,6 +103,7 @@ guest1           guest            enable
         self.assertIn("no user name old_user", steps[1]["commands"])
         self.assertNotIn("MySecretPassword123", repr(collector.return_info()))
         self.assertNotIn("MySecretPassword123", "\n".join(logged.output))
+        self.assertEqual(collector.return_info()["commands_sent"], [])
 
     def test_manage_users_redacts_password_but_sends_original(self):
         password = "MySecretPassword123"

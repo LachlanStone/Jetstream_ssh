@@ -39,7 +39,7 @@ from plugins.modules.jetstream_system import (
 class TestJetstreamSystem(unittest.TestCase):
     def test_set_general_information_check_mode(self):
         collector = ResultCollector()
-        collector.set_basic_info(switch="192.0.2.10", check_mode=True)
+        collector.set_basic_info(switch="192.0.2.10", check_mode=True, verbosity=4)
         system_params = {
             "hostname": "switch-01",
             "location": "Datacenter A",
@@ -52,10 +52,11 @@ class TestJetstreamSystem(unittest.TestCase):
         self.assertIn("hostname switch-01", step["commands"])
         self.assertIn("location Datacenter A", step["commands"])
         self.assertIn("contact-info ops@example.com", step["commands"])
+        self.assertEqual(collector.return_info()["commands_sent"], [])
 
     def test_configure_dns_check_mode(self):
         collector = ResultCollector()
-        collector.set_basic_info(switch="192.0.2.10", check_mode=True)
+        collector.set_basic_info(switch="192.0.2.10", check_mode=True, verbosity=4)
         dns_params = {
             "primary": "192.0.2.53",
             "secondary": "198.51.100.53",
@@ -65,10 +66,11 @@ class TestJetstreamSystem(unittest.TestCase):
         step = collector._steps[-1]
         self.assertFalse(step["changed"])
         self.assertIn("ip dns-address primary 192.0.2.53 secondary 198.51.100.53", step["commands"])
+        self.assertEqual(collector.return_info()["commands_sent"], [])
 
     def test_configure_ntp_check_mode(self):
         collector = ResultCollector()
-        collector.set_basic_info(switch="192.0.2.10", check_mode=True)
+        collector.set_basic_info(switch="192.0.2.10", check_mode=True, verbosity=4)
         ntp_params = {
             "type": "ntp",
             "ntp_utc": "+00:00",
@@ -81,10 +83,11 @@ class TestJetstreamSystem(unittest.TestCase):
         self.assertFalse(step["changed"])
         expected_cmd = "system-time ntp +00:00 192.0.2.123 198.51.100.123 60 203.0.113.123"
         self.assertIn(expected_cmd, step["commands"])
+        self.assertEqual(collector.return_info()["commands_sent"], [])
 
     def test_configure_lldp_check_mode(self):
         collector = ResultCollector()
-        collector.set_basic_info(switch="192.0.2.10", check_mode=True)
+        collector.set_basic_info(switch="192.0.2.10", check_mode=True, verbosity=4)
 
         # Test enable LLDP
         configure_lldp(None, {"enabled": True}, collector, check_mode=True)
@@ -102,6 +105,7 @@ class TestJetstreamSystem(unittest.TestCase):
         steps_before = len(collector._steps)
         configure_lldp(None, {}, collector, check_mode=True)
         self.assertEqual(len(collector._steps), steps_before)
+        self.assertEqual(collector.return_info()["commands_sent"], [])
 
     def test_configure_ntp_fewer_than_two_servers_raises_error(self):
         collector = ResultCollector()

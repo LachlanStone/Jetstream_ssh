@@ -266,7 +266,7 @@ def set_general_information(net_connect, system, collector, check_mode=False):
             "changed": changed,
             "msg": f"Configured system info: hostname={system.get('hostname')}, location={system.get('location')}, contact={system.get('contact')}" if changed else "No system info provided, nothing to configure",
             "commands": commands_sent,
-            "commands_sent": commands_sent,
+            "commands_sent": [] if check_mode else commands_sent,
             "system_info": system,
             "hostname": system.get("hostname"),
             "location": system.get("location"),
@@ -305,7 +305,7 @@ def configure_dns(net_connect, dns, collector, check_mode=False):
                 "changed": False if check_mode else True,
                 "msg": msg,
                 "commands": [cmd],
-                "commands_sent": [cmd],
+                "commands_sent": [] if check_mode else [cmd],
             },
         )
 
@@ -357,7 +357,7 @@ def configure_ntp(net_connect, ntp, collector, check_mode=False):
                 "changed": False if check_mode else True,
                 "msg": f"Configuring NTP: servers={ntp_servers}, fetch_time={fetch_time}",
                 "commands": [cmd],
-                "commands_sent": [cmd],
+                "commands_sent": [] if check_mode else [cmd],
             },
         )
 
@@ -386,7 +386,7 @@ def configure_lldp(net_connect, lldp, collector, check_mode=False):
             "changed": False if check_mode else True,
             "msg": msg,
             "commands": [cmd],
-            "commands_sent": [cmd],
+            "commands_sent": [] if check_mode else [cmd],
         },
     )
 

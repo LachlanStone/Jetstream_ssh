@@ -357,7 +357,7 @@ def manage_users(net_connect, user_entries, collector, check_mode=False):
                 "changed": False if check_mode else True,
                 "msg": msg,
                 "commands": [cmd],
-                "commands_sent": [cmd],
+                "commands_sent": [] if check_mode else [cmd],
                 "command": cmd,
             },
             )
@@ -400,7 +400,7 @@ def manage_users(net_connect, user_entries, collector, check_mode=False):
                 "changed": False if check_mode else True,
                 "msg": msg,
                 "commands": [safe_cmd],
-                "commands_sent": [safe_cmd],
+                "commands_sent": [] if check_mode else [safe_cmd],
                 "command": safe_cmd,
             },
             )

@@ -129,13 +129,13 @@ class ResultCollector:
         self._steps.append(normalized)
 
         command = step_result.get("command")
-        if command is not None:
+        if command is not None and not self.check_mode:
             self.last_command = command
             self.commands_sent.append(command)
 
         # Handle batch of commands sent in one step
         commands_sent_list = step_result.get("commands_sent")
-        if commands_sent_list and isinstance(commands_sent_list, list):
+        if commands_sent_list and isinstance(commands_sent_list, list) and not self.check_mode:
             for cmd in commands_sent_list:
                 self.commands_sent.append(cmd)
             self.last_command = commands_sent_list[-1]
