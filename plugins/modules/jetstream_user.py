@@ -90,6 +90,11 @@ options:
     type: str
     choices: [always, on_create]
     default: always
+  save_config:
+    description:
+      - Automatically saves running configuration to startup configuration when changes are made.
+    type: bool
+    default: false
   users:
     description:
       - A list of user account definitions to configure in batch.
@@ -313,7 +318,7 @@ def read_existing_users(net_connect):
 
 def manage_users(net_connect, user_entries, collector, check_mode=False):
     """Apply desired user configurations or deletions on the switch."""
-    initial_existing = read_existing_users(net_connect) if (net_connect and not check_mode) else None
+    initial_existing = read_existing_users(net_connect) if net_connect else None
     existing_users = dict(initial_existing) if initial_existing is not None else {}
     changed = False
 
@@ -354,7 +359,7 @@ def manage_users(net_connect, user_entries, collector, check_mode=False):
             collector.add_step(
                 name="remove_user",
             step_result={
-                "changed": False if check_mode else True,
+                "changed": True,
                 "msg": msg,
                 "commands": [cmd],
                 "commands_sent": [] if check_mode else [cmd],
@@ -376,13 +381,17 @@ def manage_users(net_connect, user_entries, collector, check_mode=False):
             if not password and not user_exists:
                 raise ValueError(f"Password is required to create new user '{name}'.")
 
-            if not password and user_exists:
+            if not password and user_exists and update_password == "always":
                 raise ValueError(
                     f"Password must be specified when updating user '{name}' on JetStream switch CLI."
                 )
 
-            cmd = f"user name {name} privilege {privilege} {password_type} {encryption_type} {password}"
-            safe_cmd = cmd[:-len(password)] + "<redacted>"
+            if password:
+                cmd = f"user name {name} privilege {privilege} {password_type} {encryption_type} {password}"
+                safe_cmd = cmd[:-len(password)] + "<redacted>"
+            else:
+                cmd = f"user name {name} privilege {privilege}"
+                safe_cmd = cmd
 
             action_desc = "Updated" if user_exists else "Created"
             msg = f"{action_desc} user '{name}' with privilege '{privilege}'"
@@ -397,7 +406,7 @@ def manage_users(net_connect, user_entries, collector, check_mode=False):
             collector.add_step(
                 name="configure_user",
             step_result={
-                "changed": False if check_mode else True,
+                "changed": True,
                 "msg": msg,
                 "commands": [safe_cmd],
                 "commands_sent": [] if check_mode else [safe_cmd],
@@ -470,12 +479,24 @@ def run_module(module):
     with ConnectHandler(**device) as net_connect:
         net_connect.enable()
         net_connect.config_mode()
-        manage_users(
+        changed = manage_users(
             net_connect=net_connect,
             user_entries=user_entries,
             collector=collector,
             check_mode=module.check_mode,
         )
+        if module.params.get("save_config") and changed and not module.check_mode:
+            send_command(net_connect, cmd="copy running-config startup-config")
+            collector.add_step(
+                name="save_config",
+                step_result={
+                    "changed": True,
+                    "msg": "Saved running-config to startup-config",
+                    "commands": ["copy running-config startup-config"],
+                    "commands_sent": ["copy running-config startup-config"],
+                    "command": "copy running-config startup-config",
+                },
+            )
 
     result = collector.return_info()
     module.exit_json(**result)
@@ -522,6 +543,7 @@ def main():
                 "default": "always",
                 "choices": ["always", "on_create"],
             },
+            "save_config": {"type": "bool", "required": False, "default": False},
             "users": {
                 "type": "list",
                 "elements": "dict",
