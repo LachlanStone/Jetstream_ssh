@@ -99,6 +99,13 @@ is truthy.
 No field may become `required: True` — every field must have a sensible default
 so existing playbooks keep working.
 
+> **Deviation — booleans with omission detection.** When a boolean field must
+> distinguish "not specified" from "explicitly false", use `default: None`
+> instead of `default: False`. `lldp.enabled` follows this pattern: `None`
+> means the user omitted it (skip), `False` means explicitly disable. The
+> `default: False` convention above applies to booleans without this
+> requirement.
+
 ---
 
 ## Step-by-step: adding a fictional system field `domain_name`

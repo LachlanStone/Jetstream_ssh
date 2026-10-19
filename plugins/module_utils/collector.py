@@ -28,6 +28,8 @@ class ResultCollector:
         # Internal tracking
         self._steps = []           # Per-step results for debugging
         self._current_step = 0
+        self.failed = False         # True when any step records success=False
+        self.error = ""             # Error message from the most recent failed step
 
         # ACL Tracking
         self.acl_id = None  # The ACL ID being managed
@@ -89,6 +91,10 @@ class ResultCollector:
         for key in ("commands", "stdout", "settings"):
             if key in step_result:
                 normalized[key] = step_result[key]
+        if step_result.get("success") is False:
+            normalized["success"] = False
+            self.failed = True
+            self.error = step_result.get("error", step_result.get("msg", ""))
         self.msg = step_result.get("msg", self.msg)
         self.name = name
         if step_result.get("changed", False):

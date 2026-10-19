@@ -285,7 +285,15 @@ def configure_dns(net_connect, dns, collector, check_mode=False):
         return
 
     if dns.get("secondary") and not dns.get("primary"):
-        raise ValueError("DNS configuration requires 'primary' server when 'secondary' is specified.")
+        collector.add_step(
+            name=configure_dns.__name__,
+            step_result={
+                "changed": False,
+                "msg": "DNS configuration requires 'primary' server when 'secondary' is specified.",
+                "success": False,
+            },
+        )
+        return
 
     if dns.get("primary"):
         cmd = f"ip dns-address primary {dns.get('primary')}"
@@ -325,17 +333,39 @@ def configure_ntp(net_connect, ntp, collector, check_mode=False):
 
     utc = ntp.get("ntp_utc")
     if not utc:
-        raise ValueError("NTP configuration requires 'ntp_utc' (e.g., '+00:00').")
+        collector.add_step(
+            name=configure_ntp.__name__,
+            step_result={
+                "changed": False,
+                "msg": "NTP configuration requires 'ntp_utc' (e.g., '+00:00').",
+                "success": False,
+            },
+        )
+        return
 
     ntp_servers = ntp.get("ntp_servers") or []
     if len(ntp_servers) < 2:
-        raise ValueError(
-            f"NTP configuration on TP-Link JetStream CLI requires at least 2 servers in 'ntp_servers' (got {len(ntp_servers)})."
+        collector.add_step(
+            name=configure_ntp.__name__,
+            step_result={
+                "changed": False,
+                "msg": f"NTP configuration on TP-Link JetStream CLI requires at least 2 servers in 'ntp_servers' (got {len(ntp_servers)}).",
+                "success": False,
+            },
         )
+        return
 
     fetch_time = ntp.get("ntp_fetch_time")
     if fetch_time is None:
-        raise ValueError("NTP configuration requires 'ntp_fetch_time' (polling interval in minutes).")
+        collector.add_step(
+            name=configure_ntp.__name__,
+            step_result={
+                "changed": False,
+                "msg": "NTP configuration requires 'ntp_fetch_time' (polling interval in minutes).",
+                "success": False,
+            },
+        )
+        return
 
     cmd_parts = [
         "system-time",
@@ -417,6 +447,9 @@ def run_module(module):
         configure_ntp(net_connect, module.params.get("ntp", {}), collector, module.check_mode)
         configure_lldp(net_connect, module.params.get("lldp", {}), collector, module.check_mode)
     result = collector.return_info()
+    if collector.failed:
+        result["msg"] = collector.error
+        module.fail_json(**result)
     module.exit_json(**result)
 
 def main():
