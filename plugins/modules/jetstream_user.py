@@ -211,7 +211,7 @@ check_mode:
   returned: always
   type: bool
 cmd:
-  description: Last command sent to the switch.
+  description: Last command sent to the switch, with the account password redacted.
   returned: always
   type: str
 steps:
@@ -315,7 +315,6 @@ def manage_users(net_connect, user_entries, collector, check_mode=False):
     """Apply desired user configurations or deletions on the switch."""
     initial_existing = read_existing_users(net_connect) if (net_connect and not check_mode) else None
     existing_users = dict(initial_existing) if initial_existing is not None else {}
-    commands_sent = []
     changed = False
 
     for entry in user_entries:
@@ -351,7 +350,6 @@ def manage_users(net_connect, user_entries, collector, check_mode=False):
                 logger.info("Removing user '%s' with command: %s", name, cmd)
                 send_command(net_connect, cmd=cmd)
 
-            commands_sent.append(cmd)
             changed = True
             collector.add_step(
                 name="remove_user",
@@ -384,25 +382,26 @@ def manage_users(net_connect, user_entries, collector, check_mode=False):
                 )
 
             cmd = f"user name {name} privilege {privilege} {password_type} {encryption_type} {password}"
+            safe_cmd = cmd[:-len(password)] + "<redacted>"
+
             action_desc = "Updated" if user_exists else "Created"
             msg = f"{action_desc} user '{name}' with privilege '{privilege}'"
 
             if check_mode:
-                logger.info("Check mode: would configure user '%s' with command: %s", name, cmd)
+                logger.info("Check mode: would configure user '%s' with command: %s", name, safe_cmd)
             else:
-                logger.info("Configuring user '%s' with command: %s", name, cmd)
+                logger.info("Configuring user '%s' with command: %s", name, safe_cmd)
                 send_command(net_connect, cmd=cmd)
 
-            commands_sent.append(cmd)
             changed = True
             collector.add_step(
                 name="configure_user",
             step_result={
                 "changed": False if check_mode else True,
                 "msg": msg,
-                "commands": [cmd],
-                "commands_sent": [cmd],
-                "command": cmd,
+                "commands": [safe_cmd],
+                "commands_sent": [safe_cmd],
+                "command": safe_cmd,
             },
             )
             existing_users[name] = {"privilege": privilege, "status": "enable"}

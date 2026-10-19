@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 import unittest
 import sys
 import os
@@ -85,22 +87,45 @@ guest1           guest            enable
             },
         ]
 
-        changed = manage_users(
-            net_connect=None,
-            user_entries=user_entries,
-            collector=collector,
-            check_mode=True,
-        )
+        with self.assertLogs("netmiko", level="INFO") as logged:
+            changed = manage_users(
+                net_connect=None,
+                user_entries=user_entries,
+                collector=collector,
+                check_mode=True,
+            )
 
         self.assertTrue(changed)
         steps = collector._steps
-        commands = collector.commands_sent
-
-        # In check mode, commands are recorded in steps with changed: False
         self.assertEqual(len(steps), 2)  # create, remove
         self.assertFalse(steps[0]["changed"])
-        self.assertIn("user name netops privilege admin secret 0 MySecretPassword123", steps[0]["commands"])
+        self.assertIn("user name netops privilege admin secret 0 <redacted>", steps[0]["commands"])
         self.assertIn("no user name old_user", steps[1]["commands"])
+        self.assertNotIn("MySecretPassword123", repr(collector.return_info()))
+        self.assertNotIn("MySecretPassword123", "\n".join(logged.output))
+
+    def test_manage_users_redacts_password_but_sends_original(self):
+        password = "MySecretPassword123"
+        command = f"user name netops privilege admin secret 0 {password}"
+        collector = ResultCollector()
+        collector.set_basic_info(switch="192.0.2.10", check_mode=False, verbosity=4)
+        net_connect = object()
+
+        with patch("plugins.modules.jetstream_user.send_command", side_effect=["", "", ""]) as send, self.assertLogs(
+            "netmiko", level="INFO"
+        ) as logged:
+            changed = manage_users(
+                net_connect,
+                [{"name": "netops", "password": password}],
+                collector,
+            )
+
+        self.assertTrue(changed)
+        self.assertEqual(send.call_args_list[-1].kwargs["cmd"], command)
+        result = collector.return_info()
+        self.assertNotIn(password, repr(result))
+        self.assertIn("<redacted>", repr(result))
+        self.assertNotIn(password, "\n".join(logged.output))
 
     def test_invalid_username_length(self):
         collector = ResultCollector()
