@@ -1,0 +1,66 @@
+name: Publish to Ansible Galaxy
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-galaxy
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read collection metadata from galaxy.yml
+        id: meta
+        run: |
+          {
+            echo "namespace=$(yq '.namespace' galaxy.yml)"
+            echo "name=$(yq '.name' galaxy.yml)"
+            echo "version=$(yq '.version' galaxy.yml)"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Check whether this version already exists on Galaxy
+        id: exists
+        env:
+          NAMESPACE: ${{ steps.meta.outputs.namespace }}
+          NAME: ${{ steps.meta.outputs.name }}
+          VERSION: ${{ steps.meta.outputs.version }}
+        run: |
+          url="https://galaxy.ansible.com/api/v3/plugin/ansible/content/published/collections/index/${NAMESPACE}/${NAME}/versions/${VERSION}/"
+          status=$(curl -s -o /dev/null -w '%{http_code}' "$url")
+          case "$status" in
+            200) echo "published=true" >> "$GITHUB_OUTPUT" ;;
+            404) echo "published=false" >> "$GITHUB_OUTPUT" ;;
+            *) echo "Unexpected HTTP $status from $url" >&2; exit 1 ;;
+          esac
+
+      - name: Skip notice
+        if: steps.exists.outputs.published == 'true'
+        run: echo "${{ steps.meta.outputs.namespace }}.${{ steps.meta.outputs.name }} ${{ steps.meta.outputs.version }} already on Galaxy; skipping publish."
+
+      - uses: actions/setup-python@v5
+        if: steps.exists.outputs.published == 'false'
+        with:
+          python-version: "3.12"
+
+      - name: Install ansible-core
+        if: steps.exists.outputs.published == 'false'
+        run: pip install ansible-core
+
+      - name: Build collection
+        if: steps.exists.outputs.published == 'false'
+        run: ansible-galaxy collection build --output-path dist
+
+      - name: Publish collection
+        if: steps.exists.outputs.published == 'false'
+        env:
+          GALAXY_API_KEY: ${{ secrets.GALAXY_API_KEY }}
+          ARTIFACT: dist/${{ steps.meta.outputs.namespace }}-${{ steps.meta.outputs.name }}-${{ steps.meta.outputs.version }}.tar.gz
+        run: ansible-galaxy collection publish "$ARTIFACT" --token "$GALAXY_API_KEY"
