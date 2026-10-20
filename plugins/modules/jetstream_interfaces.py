@@ -143,16 +143,16 @@ import logging
 from ansible.module_utils.basic import AnsibleModule
 from netmiko import ConnectHandler
 
-from ansible_collections.lachlanstone.jetstream.plugins.module_utils.send_command import (
+from plugins.module_utils.send_command import (
     send_command,
 )
-from ansible_collections.lachlanstone.jetstream.plugins.module_utils.collector import (
+from plugins.module_utils.collector import (
     ResultCollector,
 )
-from ansible_collections.lachlanstone.jetstream.plugins.module_utils.interfaces.interface_builder import (
+from plugins.module_utils.interfaces.interface_builder import (
     build_commands,
 )
-from ansible_collections.lachlanstone.jetstream.plugins.module_utils.device import (
+from plugins.module_utils.device import (
     build_device,
 )
 

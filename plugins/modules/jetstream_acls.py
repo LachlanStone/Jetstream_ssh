@@ -190,24 +190,24 @@ import logging
 import time
 
 
-from ansible_collections.lachlanstone.jetstream.plugins.module_utils.send_command import (
+from plugins.module_utils.send_command import (
     send_command,
 )
 
-from ansible_collections.lachlanstone.jetstream.plugins.module_utils.acls.acls_parsers import (
+from plugins.module_utils.acls.acls_parsers import (
     get_current_acls,
     get_bound_access_lists,
     get_protocol_number,
     protocol_names,
 )
-from ansible_collections.lachlanstone.jetstream.plugins.module_utils.acls.acl_classes import (
+from plugins.module_utils.acls.acl_classes import (
     ACL,
 )
 
-from ansible_collections.lachlanstone.jetstream.plugins.module_utils.collector import (
+from plugins.module_utils.collector import (
     ResultCollector,
 )  # Import the ResultCollector class from the results_collector module
-from ansible_collections.lachlanstone.jetstream.plugins.module_utils.device import (
+from plugins.module_utils.device import (
     build_device,
 )
 
