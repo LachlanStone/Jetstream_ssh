@@ -230,20 +230,15 @@ import logging
 from ansible.module_utils.basic import AnsibleModule
 from netmiko import ConnectHandler
 
-try:
-    from ansible_collections.lachlanstone.jetstream.plugins.module_utils.send_command import (
-        send_command,
-    )
-    from ansible_collections.lachlanstone.jetstream.plugins.module_utils.collector import (
-        ResultCollector,
-    )
-    from ansible_collections.lachlanstone.jetstream.plugins.module_utils.device import (
-        build_device,
-    )
-except ImportError:
-    from plugins.module_utils.send_command import send_command
-    from plugins.module_utils.collector import ResultCollector
-    from plugins.module_utils.device import build_device
+from ansible_collections.lachlanstone.jetstream.plugins.module_utils.send_command import (
+    send_command,
+)
+from ansible_collections.lachlanstone.jetstream.plugins.module_utils.collector import (
+    ResultCollector,
+)
+from ansible_collections.lachlanstone.jetstream.plugins.module_utils.device import (
+    build_device,
+)
 
 # Configure logging for Netmiko
 logger = logging.getLogger(name="netmiko")

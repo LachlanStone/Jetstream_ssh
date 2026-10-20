@@ -7,8 +7,8 @@ REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__fi
 if REPO_ROOT not in sys.path:
     sys.path.insert(0, REPO_ROOT)
 
-# Ensure scripts/live_tests is importable for shared test helpers
-_LIVE_TESTS = os.path.join(REPO_ROOT, "scripts", "live_tests")
+# Ensure tests/live_tests is importable for shared test helpers
+_LIVE_TESTS = os.path.join(REPO_ROOT, "tests", "live_tests")
 if _LIVE_TESTS not in sys.path:
     sys.path.insert(0, _LIVE_TESTS)
 

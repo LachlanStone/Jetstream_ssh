@@ -4,7 +4,7 @@ import unittest.mock as mock
 from plugins.module_utils.collector import ResultCollector
 from plugins.module_utils.acls.acl_classes import ACL
 from plugins.modules.jetstream_acls import unbind_acl, remove_acl, run_modules
-from scripts.live_tests.accesslist import FakeModule
+from fake_module import FakeModule
 
 
 class TestJetstreamAcls(unittest.TestCase):
