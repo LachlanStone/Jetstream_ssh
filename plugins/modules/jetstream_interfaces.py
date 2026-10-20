@@ -152,6 +152,9 @@ from ansible_collections.lachlanstone.jetstream.plugins.module_utils.collector i
 from ansible_collections.lachlanstone.jetstream.plugins.module_utils.interfaces.interface_builder import (
     build_commands,
 )
+from ansible_collections.lachlanstone.jetstream.plugins.module_utils.device import (
+    build_device,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -233,14 +236,7 @@ def configure_interface(net_connect, iface, collector, check_mode):
 
 def run_module(module):
     """Open SSH connection and configure every requested interface."""
-    device = {
-        "device_type": "tplink_jetstream",
-        "host": module.params["host"],
-        "port": module.params["port"],
-        "username": module.params["username"],
-        "password": module.params["password"],
-        "secret": module.params["enable_password"],
-    }
+    device = build_device(module)
 
     collector = ResultCollector()
     collector.set_basic_info(

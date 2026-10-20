@@ -207,6 +207,9 @@ from ansible_collections.lachlanstone.jetstream.plugins.module_utils.acls.acl_cl
 from ansible_collections.lachlanstone.jetstream.plugins.module_utils.collector import (
     ResultCollector,
 )  # Import the ResultCollector class from the results_collector module
+from ansible_collections.lachlanstone.jetstream.plugins.module_utils.device import (
+    build_device,
+)
 
 # NOTE: acl this variable to True will enable console logging for debugging purposes. Set to False to disable console logging.
 logging_enabled = True  # Set to True to enable console logging, False to disable
@@ -573,14 +576,7 @@ def bind_acls(net_connect, collector, module, acl):
 
 def run_modules(module):
     logger.info(f"State set = {module.params['state']}")
-    device = {
-        "device_type": "tplink_jetstream",
-        "host": module.params["host"],
-        "port": module.params["port"],
-        "username": module.params["username"],
-        "password": module.params["password"],
-        "secret": module.params["enable_password"],
-    }
+    device = build_device(module)
     requested_acls = module.params.get("acls") or []
     with ConnectHandler(**device) as net_connect:
         config = net_connect.config_mode()

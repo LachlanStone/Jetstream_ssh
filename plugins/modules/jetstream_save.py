@@ -110,9 +110,13 @@ try:
     from ansible_collections.lachlanstone.jetstream.plugins.module_utils.collector import (
         ResultCollector,
     )
+    from ansible_collections.lachlanstone.jetstream.plugins.module_utils.device import (
+        build_device,
+    )
 except ImportError:
     from plugins.module_utils.send_command import send_command
     from plugins.module_utils.collector import ResultCollector
+    from plugins.module_utils.device import build_device
 
 # Configure logging for Netmiko
 logger = logging.getLogger(name="netmiko")
@@ -159,14 +163,7 @@ def run_module(module):
     """Connect to the switch and execute the save configuration operation."""
     cmd = module.params.get("command", "copy running-config startup-config")
 
-    device = {
-        "device_type": "tplink_jetstream",
-        "host": module.params["host"],
-        "port": module.params["port"],
-        "username": module.params["username"],
-        "password": module.params["password"],
-        "secret": module.params["enable_password"],
-    }
+    device = build_device(module)
 
     collector = ResultCollector()
     collector.set_basic_info(

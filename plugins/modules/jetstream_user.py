@@ -237,9 +237,13 @@ try:
     from ansible_collections.lachlanstone.jetstream.plugins.module_utils.collector import (
         ResultCollector,
     )
+    from ansible_collections.lachlanstone.jetstream.plugins.module_utils.device import (
+        build_device,
+    )
 except ImportError:
     from plugins.module_utils.send_command import send_command
     from plugins.module_utils.collector import ResultCollector
+    from plugins.module_utils.device import build_device
 
 # Configure logging for Netmiko
 logger = logging.getLogger(name="netmiko")
@@ -418,16 +422,25 @@ def manage_users(net_connect, user_entries, collector, check_mode=False):
     return changed
 
 
+def _extract_user_entry(source):
+    """Extract a normalized user entry dict from module params or a users list item."""
+    password = source.get("user_password")
+    if password is None:
+        password = source.get("password")
+    return {
+        "name": source.get("name"),
+        "privilege": source.get("privilege", "admin"),
+        "password_type": source.get("password_type", "secret"),
+        "encryption_type": source.get("encryption_type", 0),
+        "password": password,
+        "state": source.get("state", "present"),
+        "update_password": source.get("update_password", "always"),
+    }
+
+
 def run_module(module):
     """Connect to the switch and execute user management operations."""
-    device = {
-        "device_type": "tplink_jetstream",
-        "host": module.params["host"],
-        "port": module.params["port"],
-        "username": module.params["username"],
-        "password": module.params["password"],
-        "secret": module.params["enable_password"],
-    }
+    device = build_device(module)
 
     collector = ResultCollector()
     collector.set_basic_info(
@@ -438,31 +451,11 @@ def run_module(module):
 
     user_entries = []
     if module.params.get("name"):
-        user_entries.append(
-            {
-                "name": module.params["name"],
-                "privilege": module.params.get("privilege", "admin"),
-                "password_type": module.params.get("password_type", "secret"),
-                "encryption_type": module.params.get("encryption_type", 0),
-                "password": module.params.get("user_password"),
-                "state": module.params.get("state", "present"),
-                "update_password": module.params.get("update_password", "always"),
-            }
-        )
+        user_entries.append(_extract_user_entry(module.params))
 
     if module.params.get("users"):
         for u in module.params["users"]:
-            user_entries.append(
-                {
-                    "name": u.get("name"),
-                    "privilege": u.get("privilege", "admin"),
-                    "password_type": u.get("password_type", "secret"),
-                    "encryption_type": u.get("encryption_type", 0),
-                    "password": u.get("password"),
-                    "state": u.get("state", "present"),
-                    "update_password": u.get("update_password", "always"),
-                }
-            )
+            user_entries.append(_extract_user_entry(u))
 
     if not user_entries:
         collector.add_step(

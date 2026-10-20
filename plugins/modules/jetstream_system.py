@@ -180,6 +180,9 @@ from ansible_collections.lachlanstone.jetstream.plugins.module_utils.send_comman
 from ansible_collections.lachlanstone.jetstream.plugins.module_utils.collector import (
     ResultCollector,
 )
+from ansible_collections.lachlanstone.jetstream.plugins.module_utils.device import (
+    build_device,
+)
 
 
 # Component: Configure logging for Netmiko
@@ -422,14 +425,7 @@ def configure_lldp(net_connect, lldp, collector, check_mode=False):
 
 def run_module(module):
     """Establish connection"""
-    device = {
-        "device_type": "tplink_jetstream",
-        "host": module.params["host"],
-        "port": module.params["port"],
-        "username": module.params["username"],
-        "password": module.params["password"],
-        "secret": module.params["enable_password"],
-    }
+    device = build_device(module)
 
     collector = ResultCollector()  # Initialize the ResultCollector
     collector.set_basic_info(
