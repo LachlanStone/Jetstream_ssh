@@ -17,7 +17,7 @@ if _LIVE_TESTS not in sys.path:
 # git (it only held empty directories), so register the whole package chain as
 # namespace packages in ``sys.modules``; this works even in a fresh checkout
 # where ``ansible_collections/`` does not exist on disk.
-_COLLECTION = "ansible_collections.lachlanstone.jetstream.plugins"
+_COLLECTION = "plugins"
 _REAL_PLUGINS = os.path.join(REPO_ROOT, "plugins")
 for _pkg in (
     "ansible_collections",

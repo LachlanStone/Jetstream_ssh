@@ -4,9 +4,9 @@ import logging
 import os
 import sys
 
-import _bootstrap  # noqa: F401  registers ansible_collections.* -> ./plugins
+import _bootstrap  # noqa: F401  puts repo root on sys.path
 
-from ansible_collections.lachlanstone.jetstream.plugins.modules.jetstream_user import run_module as _ansible_run_modules
+from plugins.modules.jetstream_user import run_module as _ansible_run_modules
 
 
 def build_parser():
