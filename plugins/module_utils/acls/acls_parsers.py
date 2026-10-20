@@ -1,6 +1,6 @@
 """Parse Omada ACL CLI output and map protocol names to numbers."""
 
-from ansible_collections.lachlanstone.jetstream.plugins.module_utils.send_command import send_command
+from plugins.module_utils.send_command import send_command
 import logging
 
 logger = logging.getLogger(__name__)

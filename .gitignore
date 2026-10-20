@@ -7,3 +7,7 @@ __pycache__/
 
 # Removing testing variables from git commit history
 /.envrc
+/AI/*
+
+# Local dev shim; real plugins live in /plugins
+/ansible_collections/

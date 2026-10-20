@@ -190,23 +190,26 @@ import logging
 import time
 
 
-from ansible_collections.lachlanstone.jetstream.plugins.module_utils.send_command import (
+from plugins.module_utils.send_command import (
     send_command,
 )
 
-from ansible_collections.lachlanstone.jetstream.plugins.module_utils.acls.acls_parsers import (
+from plugins.module_utils.acls.acls_parsers import (
     get_current_acls,
     get_bound_access_lists,
     get_protocol_number,
     protocol_names,
 )
-from ansible_collections.lachlanstone.jetstream.plugins.module_utils.acls.acl_classes import (
-    ACL
+from plugins.module_utils.acls.acl_classes import (
+    ACL,
 )
 
-from ansible_collections.lachlanstone.jetstream.plugins.module_utils.collector import (
+from plugins.module_utils.collector import (
     ResultCollector,
 )  # Import the ResultCollector class from the results_collector module
+from plugins.module_utils.device import (
+    build_device,
+)
 
 # NOTE: acl this variable to True will enable console logging for debugging purposes. Set to False to disable console logging.
 logging_enabled = True  # Set to True to enable console logging, False to disable
@@ -224,6 +227,7 @@ if logging_enabled and not logger.handlers:
     stream_handler.setLevel(level=logging.INFO)
     stream_handler.setFormatter(fmt=formatter)
     logger.addHandler(hdlr=stream_handler)
+
 
 def unbind_acl(net_connect, collector, module, acl):
     # Component: Set up the command to unbind the ACL and initialize variables for state, check mode, presence, and bound status.
@@ -324,7 +328,9 @@ def remove_acl(net_connect, collector, module, acl, current_acls):
             changed = True
             msg = f"ACL {acl.id} has been removed."
             if isinstance(current_acls, dict):
-                new_acls = {k: v for k, v in current_acls.items() if str(k) != str(acl.id)}
+                new_acls = {
+                    k: v for k, v in current_acls.items() if str(k) != str(acl.id)
+                }
         else:
             msg = f"ACL {acl.id} is currently not present."
     else:
@@ -350,7 +356,7 @@ def remove_acl(net_connect, collector, module, acl, current_acls):
             name=remove_acl.__name__,
             step_result={
                 "changed": changed,
-                "msg": f"ACL {acl.id} removal operation completed with state '{module.params['state']}'.",
+                "msg": msg,
                 "command": cmd,
                 "acl_present": False,
                 "acl_bound": False,
@@ -443,11 +449,6 @@ def create_and_update_acl(net_connect, collector, module, acl, current_acls):
 
 def create_and_update_acl_rules(net_connect, collector, module, acl, current_acls):
     logger.info(f"Creating and updating rules for ACL {acl.id}...")
-    # TODO:
-    # 1. Buildout all the functions that are currently available for ACLs and their rules
-    # DONE 2. Add the ability to update existing rules, and remove existing rules
-    # DONE 3. Implement all features required for special project
-
     if not acl.rules:
         msg = f"No rules provided for ACL {acl.id}. Skipping rule configuration."
         logger.info(msg)
@@ -575,14 +576,7 @@ def bind_acls(net_connect, collector, module, acl):
 
 def run_modules(module):
     logger.info(f"State set = {module.params['state']}")
-    device = {
-        "device_type": "tplink_jetstream",
-        "host": module.params["host"],
-        "port": module.params["port"],
-        "username": module.params["username"],
-        "password": module.params["password"],
-        "secret": module.params["enable_password"],
-    }
+    device = build_device(module)
     requested_acls = module.params.get("acls") or []
     with ConnectHandler(**device) as net_connect:
         config = net_connect.config_mode()

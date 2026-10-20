@@ -28,6 +28,8 @@ class ResultCollector:
         # Internal tracking
         self._steps = []           # Per-step results for debugging
         self._current_step = 0
+        self.failed = False         # True when any step records success=False
+        self.error = ""             # Error message from the most recent failed step
 
         # ACL Tracking
         self.acl_id = None  # The ACL ID being managed
@@ -89,6 +91,10 @@ class ResultCollector:
         for key in ("commands", "stdout", "settings"):
             if key in step_result:
                 normalized[key] = step_result[key]
+        if step_result.get("success") is False:
+            normalized["success"] = False
+            self.failed = True
+            self.error = step_result.get("error", step_result.get("msg", ""))
         self.msg = step_result.get("msg", self.msg)
         self.name = name
         if step_result.get("changed", False):
@@ -129,13 +135,13 @@ class ResultCollector:
         self._steps.append(normalized)
 
         command = step_result.get("command")
-        if command is not None:
+        if command is not None and not self.check_mode:
             self.last_command = command
             self.commands_sent.append(command)
 
         # Handle batch of commands sent in one step
         commands_sent_list = step_result.get("commands_sent")
-        if commands_sent_list and isinstance(commands_sent_list, list):
+        if commands_sent_list and isinstance(commands_sent_list, list) and not self.check_mode:
             for cmd in commands_sent_list:
                 self.commands_sent.append(cmd)
             self.last_command = commands_sent_list[-1]

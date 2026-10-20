@@ -1,6 +1,6 @@
 namespace: lachlanstone
 name: jetstream
-version: 1.0.0
+version: 1.0.1
 readme: README.md
 authors:
   - "LachlanStone"
@@ -22,3 +22,10 @@ build_ignore:
   - "*.log"
   - __pycache__
   - scripts
+  - ansible_collections
+  - AI
+  - .ansible
+  - "*.mypy_cache"
+  - "*.pytest_cache"
+  - user-design.md
+  - .pre-commit-config.yaml

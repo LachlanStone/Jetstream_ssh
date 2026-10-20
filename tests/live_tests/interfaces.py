@@ -4,12 +4,9 @@ import logging
 import os
 import sys
 
-# Make the collection root importable when this script is run directly.
-_REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-if _REPO_ROOT not in sys.path:
-    sys.path.insert(0, _REPO_ROOT)
+import _bootstrap  # noqa: F401  puts repo root on sys.path
 
-from ansible_collections.lachlanstone.jetstream.plugins.modules.jetstream_interfaces import (
+from plugins.modules.jetstream_interfaces import (
     run_module as _ansible_run_module,
 )
 
@@ -30,38 +27,7 @@ CHECK_MODE = False
 PORTS = ["1/0/9", "1/0/10", "1/0/11"]
 
 
-class FakeModule:
-    """
-    Lightweight wrapper that emulates AnsibleModule's interface.
-    Acts as a dict (for subscript access) AND exposes .params for attribute access.
-    """
-
-    def __init__(self, params, check_mode=False):
-        self.params = params
-        self.params.setdefault("_verbosity", 0)
-        self._verbosity = 3
-        self.check_mode = check_mode
-        self._last_exit = None
-
-    def __getitem__(self, key):
-        return self.params[key]
-
-    def __setitem__(self, key, value):
-        self.params[key] = value
-
-    def __contains__(self, key):
-        return key in self.params
-
-    def get(self, key, default=None):
-        return self.params.get(key, default)
-
-    def exit_json(self, **kwargs):
-        kwargs["changed"] = kwargs.get("changed", False)
-        self._last_exit = kwargs
-        raise SystemExit(0)
-
-    def fail_json(self, msg, **kwargs):
-        raise RuntimeError(f"Module failed: {msg}")
+from fake_module import FakeModule
 
 
 def run_module_with_params(params, check_mode=False):
