@@ -22,3 +22,10 @@ build_ignore:
   - "*.log"
   - __pycache__
   - scripts
+  - ansible_collections
+  - AI
+  - .ansible
+  - "*.mypy_cache"
+  - "*.pytest_cache"
+  - user-design.md
+  - .pre-commit-config.yaml
