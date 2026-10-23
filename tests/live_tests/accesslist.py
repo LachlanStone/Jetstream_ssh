@@ -21,6 +21,26 @@ def build_parser():
 
 from fake_module import FakeModule
 
+from netmiko import ConnectHandler
+
+from plugins.module_utils.acls.acls_parsers import (
+    get_bound_access_lists,
+    get_current_acls,
+)
+from plugins.module_utils.device import build_device
+
+ACL_ID = "1000"
+ACL_NAME = "ACL3"
+VLAN_ID = 10
+
+EXPECTED_STEPS = [
+    "unbind_acl",
+    "remove_acl",
+    "create_and_update_acl",
+    "create_and_update_acl_rules",
+    "bind_acls",
+]
+
 
 def run_module_with_params(params):
     """
@@ -40,6 +60,47 @@ def run_module_with_params(params):
             return fake_module._last_exit or {}
         raise
     return fake_module._last_exit or {}
+
+
+def check_results(results):
+    """Assert the module reported the expected ACL lifecycle."""
+    steps = results.get("steps", [])
+    assert [step["name"] for step in steps] == EXPECTED_STEPS, [
+        step["name"] for step in steps
+    ]
+    assert results["changed"] is True, results["changed"]
+    assert results["msg"] == f"ACL {ACL_ID} has been bound.", results["msg"]
+    assert results["cmd"] == f"access-list bind {ACL_ID} interface vlan {VLAN_ID}", results["cmd"]
+
+    rule_step = next(
+        step for step in steps if step["name"] == "create_and_update_acl_rules"
+    )
+    assert rule_step["changed"] is True, rule_step["changed"]
+    assert (
+        f"access-list combined {ACL_ID} rule 10 permit logging enable vid {VLAN_ID}"
+        in rule_step["command"]
+    ), rule_step["command"]
+
+
+def check_device_state(params):
+    """Read the switch back and assert the ACL and binding actually exist."""
+    with ConnectHandler(**build_device(FakeModule(params))) as net_connect:
+        net_connect.enable()
+        current_acls = get_current_acls(net_connect)
+        bound_acls = get_bound_access_lists(net_connect)
+
+    assert ACL_ID in current_acls, current_acls
+    acl = current_acls[ACL_ID]
+    assert acl["name"] == ACL_NAME, acl
+    assert acl["type"] == "combined", acl
+    rules = {rule["seq"]: rule for rule in acl["rules"]}
+    assert set(rules) == {10, 20}, rules
+    assert rules[10]["action"] == "permit", rules[10]
+    assert rules[20]["action"] == "permit", rules[20]
+
+    assert ACL_ID in bound_acls, bound_acls
+    binding = bound_acls[ACL_ID]
+    assert binding.get("Interface/VID") == str(VLAN_ID), binding
 
 
 if __name__ == "__main__":
@@ -97,6 +158,9 @@ if __name__ == "__main__":
     try:
         results = run_module_with_params(params)
         print(json.dumps(results, indent=2))
-    except RuntimeError as e:
+        check_results(results)
+        check_device_state(params)
+        print("ACL live test validation passed.")
+    except (RuntimeError, AssertionError) as e:
         print(json.dumps({"failed": True, "msg": str(e)}, indent=2))
         sys.exit(1)
