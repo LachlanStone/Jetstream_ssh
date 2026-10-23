@@ -548,6 +548,9 @@ def create_and_update_acl_rules(net_connect, collector, module, acl, current_acl
 
 def bind_acls(net_connect, collector, module, acl):
     cmd = f"access-list bind {acl.id}"
+    if acl.vid:
+        # The CLI requires a target: `access-list bind <id> interface vlan <vid>`.
+        cmd += f" interface vlan {acl.vid}"
     is_changed = False
     if acl.is_bound:
         msg = f"ACL {acl.id} is already bound."
@@ -605,6 +608,13 @@ def run_modules(module):
         unbind_acl(
             net_connect, collector, module, acl
         )  # function: Unbinds the ACL from the device if it is currently bound
+        if (
+            module.params["state"] in ("absent", "update")
+            and not module.check_mode
+        ):
+            # The snapshot is stale after a successful unbind; let the final
+            # bind step run again even though the ACL was bound before this run.
+            acl.is_bound = False
 
         # Module: Remove the ACL if it is currently present and the state is set to 'absent' or 'update'
         new_acls = remove_acl(

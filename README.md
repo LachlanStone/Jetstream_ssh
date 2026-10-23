@@ -8,6 +8,7 @@ Ansible modules that configure TP-Link JetStream switches over SSH (Netmiko, `de
 |---|---|
 | `jetstream_acls` | Manage ACLs and rules |
 | `jetstream_interfaces` | Configure interface ports |
+| `jetstream_vlans` | Configure VLANs and SVIs |
 | `jetstream_system` | Hostname, location, contact, DNS |
 | `jetstream_user` | Manage local switch user accounts |
 | `jetstream_save` | Save running configuration to startup configuration |

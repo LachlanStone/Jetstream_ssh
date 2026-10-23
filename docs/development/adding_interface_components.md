@@ -16,6 +16,7 @@ plugins/
       __init__.py                        # empty, marks package
       interface_builder.py              # pure command builder — no Ansible, no Netmiko
     send_command.py                      # sends one CLI command over Netmiko
+    config_mode.py                       # prompt-based CLI mode detection/guards
     collector.py                         # ResultCollector: accumulates per-step results
 ```
 
@@ -43,7 +44,7 @@ expects them, bracketed by `interface <port-type> X/Y/Z` at the top and
 - Skip the command entirely when the value is falsy / equals the switch default.
   This keeps the module idempotent-friendly (no unnecessary config churn).
 - Append the command string to `cmds` in the correct CLI order.
-  CLI order for this switch: `enabled` (`shutdown` / `no shutdown`) → `mode` → `speed` → `pvid` → `allowed vlan` → feature flags → `description` → `exit`.
+  CLI order for this switch: `enabled` (`shutdown` / `no shutdown`) → `speed` → `pvid` → `allowed vlan` → feature flags → `description` → `exit`.
 - Raise `ValueError` only for invalid values that cannot be caught by `choices`
   in the argument spec (e.g. a bad combination of fields).
 - No Ansible imports. No Netmiko imports. The function must be importable and
@@ -64,7 +65,7 @@ Add your new field there as a sibling of the existing keys.
 | List of integers | `{"type": "list", "elements": "int", "required": False, "default": []}` |
 | Boolean | `{"type": "bool", "required": False, "default": False}` |
 
-`required: True` is reserved for `name` and `mode` only. Every new field must have
+`required: True` is reserved for `name` only. Every new field must have
 a sensible default so existing playbooks keep working without changes.
 
 ---
@@ -120,7 +121,6 @@ from plugins.module_utils.interfaces.interface_builder import build_commands
 cmds = build_commands({
     "name": "1/0/1",
     "port_type": "gigabitEthernet",
-    "mode": "general",
     "speed": None,
     "enabled": None,
     "pvid": None,
@@ -150,7 +150,6 @@ python3 -c "import ast, pathlib; ast.parse(pathlib.Path('plugins/modules/jetstre
 |---|---|---|---|---|
 | `name` | `name` | str | — required | port ID portion of `interface <port-type> X/Y/Z` |
 | `port_type` | `port_type` | str | `"gigabitEthernet"` | interface prefix: `gigabitEthernet` / `two-gigabitEthernet` / `ten-gigabitEthernet` / `fastEthernet` |
-| `mode` | `mode` | str | — required | `switchport mode access\|general` |
 | `speed` | `speed` | str | `None` (omitted) | `speed <value>` — choices: `10`, `100`, `1000`, `2500`, `10000`, `auto` |
 | `enabled` | `enabled` | bool | `None` (omitted) | `no shutdown` when `True`, `shutdown` when `False`, nothing when omitted |
 | `pvid` | `pvid` | int | `None` (omitted) | `switchport pvid <N>` |
@@ -189,7 +188,11 @@ Omitting `port_type` defaults to `gigabitEthernet`, correct for the vast majorit
   must be back at global config before the next interface block starts.
 - `description` is always the last substantive command, before `exit`.
   Some JetStream firmware versions reject `description` mid-block.
-- No field in `argument_spec` may be `required: True` except `name` and `mode`.
+- `configure_interface()` must call `ensure_global_config()` before each block
+  and `require_config_mode(net_connect, "interface", ...)` after the
+  `interface ...` command. If the switch did not enter interface mode, raise
+  instead of sending the remaining commands at global config.
+- No field in `argument_spec` may be `required: True` except `name`.
   Adding a required field breaks every existing playbook silently at runtime.
 
 ---
@@ -201,9 +204,17 @@ plugins/module_utils/send_command.py
 ```
 
 Wraps `net_connect.send_command()` with:
+
 - `delay_factor=2.0`, `read_timeout=30` — safe for slow switches
-- Up to 3 retries on empty output (JetStream quirk)
-- Returns stripped output string
+- **No retry on empty output.** Empty output is normal for silent config
+  commands such as `interface gigabitEthernet 1/0/1`; resending repeats the
+  command inside the new context and produces `Error: Bad command`.
+- Opt-in timeout retries via `retries=` and `read_timeout=`.
+- Optional `mode_aware=True`: after a `ReadTimeout`, the prompt is compared with
+  the prompt captured before the command. Same prompt → retry; changed prompt →
+  assume the command was applied and do not resend.
+
+`configure_interface()` uses `retries=1, mode_aware=True`.
 
 You do not call this from the builder. `configure_interface()` in the module
 calls it once per command returned by `build_commands()`.
