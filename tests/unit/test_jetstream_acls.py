@@ -12,6 +12,13 @@ class TestJetstreamAcls(unittest.TestCase):
         self.collector = ResultCollector()
         self.collector.set_basic_info(switch="192.0.2.10", check_mode=True)
 
+    def test_acl_from_dict_without_rules(self):
+        # Ansible fills an omitted list suboption with None.
+        acl = ACL.from_dict({"id": "100", "rules": None}, {}, {})
+
+        self.assertEqual(acl.id, "100")
+        self.assertEqual(acl.rules, [])
+
     def test_unbind_acl_state_present(self):
         fake_module = FakeModule({"state": "present"})
         acl = ACL(id="100", name="TEST_ACL", vid=10, rule_type="ip", is_bound=True, is_present=True)
