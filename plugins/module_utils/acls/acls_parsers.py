@@ -19,7 +19,7 @@ def get_bound_access_lists(net_connect):
     Returns:
         dict: ``{acl_id: row}`` keyed by ``ACL ID``. Empty if none are bound.
     """
-    output = send_command(net_connect, cmd="show access-list bind")
+    output = send_command(net_connect, cmd="show access-list bind", retries=1)
 
     lines = [line for line in output.splitlines() if line.strip() and "#" not in line]
 
@@ -51,7 +51,7 @@ def get_current_acls(net_connect):
     Returns:
         dict: ``{acl_id: {id, name, type, rules}}``.
     """
-    output = send_command(net_connect, cmd="show access-list")
+    output = send_command(net_connect, cmd="show access-list", retries=1)
     acls = {}
     current_acl = None
     for raw in output.splitlines():
