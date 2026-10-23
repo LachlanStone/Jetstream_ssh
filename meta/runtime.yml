@@ -1,2 +1,11 @@
 ---
 requires_ansible: ">=2.15.0"
+action_groups:
+  jetstream:
+    - jetstream_acls
+    - jetstream_command
+    - jetstream_interfaces
+    - jetstream_save
+    - jetstream_system
+    - jetstream_user
+    - jetstream_vlans

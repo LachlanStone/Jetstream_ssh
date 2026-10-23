@@ -42,6 +42,11 @@ options:
     description: Password for privileged (enable) mode.
     type: str
     default: ""
+  read_timeout:
+    description:
+      - Seconds Netmiko waits for the command prompt before raising a read timeout.
+      - Defaults to C(JETSTREAM_READ_TIMEOUT) when set, otherwise 30.
+    type: float
   interfaces:
     description: Interfaces to configure.
     type: list
@@ -290,6 +295,7 @@ def main():
             "username": {"type": "str", "required": True},
             "password": {"type": "str", "no_log": True, "default": ""},
             "enable_password": {"type": "str", "no_log": True, "default": ""},
+            "read_timeout": {"type": "float", "required": False},
             "interfaces": {
                 "type": "list",
                 "elements": "dict",

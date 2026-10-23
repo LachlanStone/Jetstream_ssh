@@ -43,6 +43,36 @@ ansible-galaxy collection install lachlanstone.jetstream
 
 Full playbook and variables: `docs/examples/`.
 
+## Read timeout
+
+Netmiko waits 30 seconds for each command prompt by default. There are three
+ways to raise it; the module option wins, then the environment variable.
+
+Per task:
+
+```yaml
+- lachlanstone.jetstream.jetstream_acls:
+    read_timeout: 120
+```
+
+Globally for the collection, with `module_defaults`:
+
+```yaml
+module_defaults:
+  group/lachlanstone.jetstream.jetstream:
+    read_timeout: "{{ JETSTREAM_READ_TIMEOUT }}"
+```
+
+Or through the environment of the Ansible process:
+
+```bash
+export JETSTREAM_READ_TIMEOUT=120
+```
+
+The value is passed to Netmiko as `read_timeout_override`, so it also applies to
+commands sent directly by `jetstream_command`. Invalid or non-positive values
+fail the task with a clear message.
+
 ## TextFSM parsing
 
 `jetstream_command` parses output with TextFSM when `NET_TEXTFSM` points at `extras/ntc_templates/`.

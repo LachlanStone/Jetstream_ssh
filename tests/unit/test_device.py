@@ -28,6 +28,14 @@ class TestReadTimeoutOverride(unittest.TestCase):
             with self.assertRaises(ValueError):
                 read_timeout_override()
 
+    def test_module_param_wins_over_env(self):
+        with mock.patch.dict(os.environ, {"JETSTREAM_READ_TIMEOUT": "120"}):
+            self.assertEqual(read_timeout_override({"read_timeout": 300}), 300.0)
+
+    def test_invalid_module_param_raises(self):
+        with self.assertRaises(ValueError):
+            read_timeout_override({"read_timeout": -5})
+
 
 class TestBuildDevice(unittest.TestCase):
     def test_includes_read_timeout_override(self):
@@ -57,6 +65,20 @@ class TestBuildDevice(unittest.TestCase):
             device = build_device(module)
 
         self.assertEqual(device["read_timeout_override"], DEFAULT_READ_TIMEOUT)
+
+    def test_module_param_is_used(self):
+        params = {
+            "host": "192.0.2.10",
+            "port": 22,
+            "username": "admin",
+            "password": "pwd",
+            "enable_password": "secret",
+            "read_timeout": 300,
+        }
+        with mock.patch.dict(os.environ, {"JETSTREAM_READ_TIMEOUT": "120"}):
+            device = build_device(params)
+
+        self.assertEqual(device["read_timeout_override"], 300.0)
 
 
 if __name__ == "__main__":
