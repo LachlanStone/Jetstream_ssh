@@ -149,6 +149,11 @@ from plugins.module_utils.send_command import (
 from plugins.module_utils.collector import (
     ResultCollector,
 )
+from plugins.module_utils.config_mode import (
+    CONFIG_PROMPT,
+    ensure_global_config,
+    require_config_mode,
+)
 from plugins.module_utils.interfaces.interface_builder import (
     build_commands,
 )
@@ -177,7 +182,7 @@ if logging_enabled:
 # ---------------------------------------------------------------------------
 
 # Entering `interface ...` changes the prompt from (config)# to (config-if)#; match both.
-_CONFIG_PROMPT = r"\(config[^)]*\)#"
+_CONFIG_PROMPT = CONFIG_PROMPT
 
 
 def configure_interface(net_connect, iface, collector, check_mode):
@@ -212,6 +217,9 @@ def configure_interface(net_connect, iface, collector, check_mode):
         )
         return
 
+    # Recover from a previous block that did not return to global config.
+    ensure_global_config(net_connect)
+
     for cmd in cmds:
         if cmd == "exit":
             # JetStream does not reprint the prompt after `exit`; don't wait for one.
@@ -220,6 +228,12 @@ def configure_interface(net_connect, iface, collector, check_mode):
             output = send_command(net_connect, cmd, expect_string=_CONFIG_PROMPT)
         stdout_parts.append(f"# {cmd}\n{output}".strip())
         logger.info("Sent: %s | Output: %s", cmd, output.strip())
+
+        # `interface ...` must actually switch the CLI into interface mode.
+        if cmd.startswith("interface "):
+            require_config_mode(
+                net_connect, "interface", context=f"Interface {name}"
+            )
 
     collector.add_step(
         name=f"configure_interface:{name}",

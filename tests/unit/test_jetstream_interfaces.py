@@ -55,6 +55,10 @@ class TestJetstreamInterfaces(unittest.TestCase):
 
         fake_conn = mock.MagicMock()
         fake_conn.send_command_timing.return_value = ""
+        fake_conn.find_prompt.side_effect = [
+            "switch(config)#",      # ensure_global_config
+            "switch(config-if)#",   # after entering the interface
+        ]
 
         iface = {
             "name": "1/0/1",
