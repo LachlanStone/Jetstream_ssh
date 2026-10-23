@@ -63,6 +63,85 @@ class TestSendCommand(unittest.TestCase):
 
         self.assertEqual(conn.send_command.call_count, 3)
 
+    def test_mode_aware_retries_when_prompt_unchanged(self):
+        conn = mock.MagicMock()
+        conn.find_prompt.side_effect = [
+            "switch(config)#",  # before the command
+            "switch(config)#",  # after the timeout
+        ]
+        conn.send_command.side_effect = [
+            ReadTimeout("pattern not detected"),
+            "",
+        ]
+
+        with mock.patch("plugins.module_utils.send_command.time.sleep"):
+            output = send_command(
+                conn,
+                "name Servers",
+                expect_string=r"\(config[^)]*\)#",
+                retries=1,
+                mode_aware=True,
+            )
+
+        self.assertEqual(output, "")
+        self.assertEqual(conn.send_command.call_count, 2)
+        conn.clear_buffer.assert_called_once_with()
+
+    def test_mode_aware_does_not_resend_after_context_change(self):
+        conn = mock.MagicMock()
+        conn.find_prompt.side_effect = [
+            "switch(config)#",      # before the command
+            "switch(config-if)#",   # command entered interface mode
+        ]
+        conn.send_command.side_effect = ReadTimeout("pattern not detected")
+
+        output = send_command(
+            conn,
+            "interface vlan 10",
+            expect_string=r"\(config[^)]*\)#",
+            retries=1,
+            mode_aware=True,
+        )
+
+        self.assertEqual(output, "")
+        self.assertEqual(conn.send_command.call_count, 1)
+        conn.clear_buffer.assert_called_once_with()
+
+    def test_mode_aware_raises_when_prompt_probe_fails(self):
+        conn = mock.MagicMock()
+        conn.find_prompt.side_effect = [
+            "switch(config)#",
+            RuntimeError("probe failed"),
+        ]
+        conn.send_command.side_effect = ReadTimeout("pattern not detected")
+
+        with self.assertRaises(ReadTimeout):
+            send_command(
+                conn,
+                "interface vlan 10",
+                expect_string=r"\(config[^)]*\)#",
+                retries=1,
+                mode_aware=True,
+            )
+
+        self.assertEqual(conn.send_command.call_count, 1)
+
+    def test_mode_aware_refuses_to_retry_without_starting_prompt(self):
+        conn = mock.MagicMock()
+        conn.find_prompt.return_value = ""
+        conn.send_command.side_effect = ReadTimeout("pattern not detected")
+
+        with self.assertRaises(ReadTimeout):
+            send_command(
+                conn,
+                "interface vlan 10",
+                expect_string=r"\(config[^)]*\)#",
+                retries=1,
+                mode_aware=True,
+            )
+
+        self.assertEqual(conn.send_command.call_count, 1)
+
 
 if __name__ == "__main__":
     unittest.main()

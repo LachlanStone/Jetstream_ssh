@@ -225,7 +225,13 @@ def configure_interface(net_connect, iface, collector, check_mode):
             # JetStream does not reprint the prompt after `exit`; don't wait for one.
             output = net_connect.send_command_timing(cmd)
         else:
-            output = send_command(net_connect, cmd, expect_string=_CONFIG_PROMPT)
+            output = send_command(
+                net_connect,
+                cmd,
+                expect_string=_CONFIG_PROMPT,
+                retries=1,
+                mode_aware=True,
+            )
         stdout_parts.append(f"# {cmd}\n{output}".strip())
         logger.info("Sent: %s | Output: %s", cmd, output.strip())
 
