@@ -813,7 +813,7 @@
     - name: "[save] Save config — write method"
       lachlanstone.jetstream.jetstream_save:
         <<: *conn
-        save_method: write
+        command: "write"
       register: save_write_result
       ignore_errors: true
       tags: [jetstream_save, save_write, never]
