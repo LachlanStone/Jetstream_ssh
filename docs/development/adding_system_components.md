@@ -190,9 +190,14 @@ plugins/module_utils/send_command.py
 ```
 
 Wraps `net_connect.send_command()` with:
+
 - `delay_factor=2.0`, `read_timeout=30` — safe for slow switches
-- Up to 3 retries on empty output (JetStream quirk)
-- Returns stripped output string
+- **No retry on empty output.** Empty output is normal for silent config
+  commands; resending repeats the command in the new context and produces
+  `Error: Bad command`.
+- Opt-in timeout retries: pass `retries=N` to retry only after a `ReadTimeout`.
+- `mode_aware=True` compares prompts across a timeout. Same prompt → retry;
+  changed prompt → assume the command was applied and do not resend.
 
 Helpers call this directly; there is no separate builder to route through.
 

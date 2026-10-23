@@ -1,5 +1,9 @@
 # Implementation Plan: `jetstream_vlans` Module
 
+> **Status:** implemented in 1.1.0. For extending the module, see
+> [`adding_vlan_components.md`](adding_vlan_components.md). This document is the
+> original design plan and is kept for history.
+
 This document is written for an implementation agent picking up this task cold.
 Read it fully before touching any file.
 

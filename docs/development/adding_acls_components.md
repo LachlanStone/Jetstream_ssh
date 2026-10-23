@@ -199,6 +199,11 @@ python3 -c "import ast, pathlib; ast.parse(pathlib.Path('plugins/modules/jetstre
   planned command instead.
 - ACL command order in a run is fixed: unbind → remove → create → rules → bind.
   Do not reorder the helper calls in `run_modules()`.
+- Binding must include a target:
+  `access-list bind <id> interface vlan <vid>`. A bare
+  `access-list bind <id>` is rejected as an incomplete command.
+- After unbinding for `state: update`, clear the stale `acl.is_bound` snapshot so
+  the final bind step runs again.
 - `mutually_exclusive=[["protocol", "protocol_name"]]` must remain in the
   argument spec.
 
@@ -211,9 +216,18 @@ plugins/module_utils/send_command.py
 ```
 
 Wraps `net_connect.send_command()` with:
+
 - `delay_factor=2.0`, `read_timeout=30` — safe for slow switches
-- Up to 3 retries on empty output (JetStream quirk)
-- Returns stripped output string
+- **No retry on empty output.** Empty output is normal for silent config
+  commands; resending repeats the command in the new context and produces
+  `Error: Bad command`.
+- Opt-in timeout retries: pass `retries=N` to retry only after a `ReadTimeout`.
+- `mode_aware=True` compares prompts across a timeout. Same prompt → retry;
+  changed prompt → assume the command was applied and do not resend.
+
+The ACL module leaves timeout retries disabled for create/remove/rule/bind
+commands because repeating them can create duplicates. The `show access-list`
+and `show access-list bind` reads use `retries=1`.
 
 Helpers call this directly; there is no separate builder to route through.
 
