@@ -40,6 +40,18 @@ class TestConnectionHelpers(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             require_config_mode(conn, "interface", context="Interface 1/0/1")
 
+    def test_require_config_mode_waits_for_prompt_update(self):
+        conn = mock.MagicMock()
+        conn.find_prompt.side_effect = [
+            "switch(config)#",
+            "switch(config-vlan)#",
+        ]
+
+        with mock.patch("plugins.module_utils.config_mode.time.sleep"):
+            require_config_mode(conn, "vlan", context="VLAN 10")
+
+        self.assertEqual(conn.find_prompt.call_count, 2)
+
     def test_ensure_global_config_exits_submode(self):
         conn = mock.MagicMock()
         conn.find_prompt.side_effect = [

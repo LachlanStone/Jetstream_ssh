@@ -4,6 +4,7 @@ No Netmiko or Ansible imports — unit-testable without a device.
 """
 
 import re
+import time
 
 
 # Prompt patterns. Order matters: interface patterns must come before the
@@ -82,18 +83,29 @@ def ensure_global_config(net_connect, max_exits=4):
     return mode
 
 
-def require_config_mode(net_connect, expected, context=""):
-    """Raise unless the live connection is in *expected* config mode.
+def require_config_mode(net_connect, expected, context="", attempts=5, delay=0.2):
+    """Wait briefly for the live connection to enter *expected* config mode.
+
+    The switch can take a moment to finish applying a context-entering
+    command, so a single prompt read may still show the previous mode.
 
     Args:
         net_connect: Active Netmiko connection.
         expected (str): Mode name from ``parse_config_mode``.
         context (str): Optional label included in the error message.
+        attempts (int): Prompt reads before reporting failure.
+        delay (float): Seconds between prompt reads.
 
     Raises:
         RuntimeError: The current mode does not match *expected*.
     """
     mode = get_config_mode(net_connect)
+    for _ in range(max(attempts, 1) - 1):
+        if mode == expected:
+            break
+        time.sleep(delay)
+        mode = get_config_mode(net_connect)
+
     if mode != expected:
         prefix = f"{context}: " if context else ""
         raise RuntimeError(
