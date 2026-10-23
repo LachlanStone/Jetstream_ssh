@@ -70,6 +70,16 @@ class TestVlanBuilder(unittest.TestCase):
         with self.assertRaises(ValueError):
             build_vlan_commands({"vlan_id": 4095})
 
+    def test_vlan_id_missing_or_invalid_type(self):
+        with self.assertRaises(ValueError):
+            build_vlan_commands({})
+        with self.assertRaises(ValueError):
+            build_vlan_commands({"vlan_id": "10"})
+        with self.assertRaises(ValueError):
+            build_vlan_commands({"vlan_id": None})
+        with self.assertRaises(ValueError):
+            build_vlan_commands({"vlan_id": True})
+
     def test_ip_address_and_dhcp_are_mutually_exclusive(self):
         with self.assertRaises(ValueError):
             build_vlan_commands({

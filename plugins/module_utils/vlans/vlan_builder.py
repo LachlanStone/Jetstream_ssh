@@ -21,10 +21,10 @@ def build_vlan_commands(vlan):
         ValueError: vlan_id out of range, ip_address and ip_dhcp both set,
             or ip_address set without subnet_mask.
     """
-    vlan_id = vlan["vlan_id"]
+    vlan_id = vlan.get("vlan_id") if isinstance(vlan, dict) else None
 
-    if not 1 <= vlan_id <= 4094:
-        raise ValueError(f"vlan_id {vlan_id} is out of range (1-4094).")
+    if type(vlan_id) is not int or not (1 <= vlan_id <= 4094):
+        raise ValueError(f"vlan_id {vlan_id!r} is invalid (must be int in range 1-4094).")
 
     name = vlan.get("name")
     ip_address = vlan.get("ip_address")
