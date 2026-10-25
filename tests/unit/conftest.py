@@ -30,3 +30,8 @@ for _pkg in (
         _m.__path__ = []
         sys.modules[_pkg] = _m
 sys.modules[_COLLECTION].__path__ = [_REAL_PLUGINS]
+# Source modules import their siblings through the full collection path, e.g.
+# ``ansible_collections.lachlanstone.jetstream.plugins.module_utils...``.
+# Point the collection package at the repo root so that nested ``plugins``
+# package resolves too.
+sys.modules["ansible_collections.lachlanstone.jetstream"].__path__ = [REPO_ROOT]

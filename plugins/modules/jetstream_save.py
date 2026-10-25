@@ -40,6 +40,11 @@ options:
     description: Password for privileged (enable) mode.
     type: str
     default: ""
+  read_timeout:
+    description:
+      - Seconds Netmiko waits for the command prompt before raising a read timeout.
+      - Defaults to C(JETSTREAM_READ_TIMEOUT) when set, otherwise 30.
+    type: float
   command:
     description:
       - The specific CLI command used to persist the running configuration.
@@ -103,13 +108,13 @@ import logging
 from ansible.module_utils.basic import AnsibleModule
 from netmiko import ConnectHandler
 
-from plugins.module_utils.send_command import (
+from ansible_collections.lachlanstone.jetstream.plugins.module_utils.send_command import (
     send_command,
 )
-from plugins.module_utils.collector import (
+from ansible_collections.lachlanstone.jetstream.plugins.module_utils.collector import (
     ResultCollector,
 )
-from plugins.module_utils.device import (
+from ansible_collections.lachlanstone.jetstream.plugins.module_utils.device import (
     build_device,
 )
 
@@ -197,6 +202,7 @@ def main():
             "username": {"type": "str", "required": True},
             "password": {"type": "str", "no_log": True, "default": ""},
             "enable_password": {"type": "str", "no_log": True, "default": ""},
+            "read_timeout": {"type": "float", "required": False},
             "command": {
                 "type": "str",
                 "required": False,

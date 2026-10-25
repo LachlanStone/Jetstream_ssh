@@ -1,0 +1,6 @@
+switch_host: 10.10.10.50
+ssh_port: 22
+ssh_username: admin
+ssh_password: password
+ssh_enable_password: password
+ssh_command_level: enable

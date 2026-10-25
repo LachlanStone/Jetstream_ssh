@@ -42,6 +42,11 @@ options:
     description: Password for privileged (enable) mode.
     type: str
     default: ""
+  read_timeout:
+    description:
+      - Seconds Netmiko waits for the command prompt before raising a read timeout.
+      - Defaults to C(JETSTREAM_READ_TIMEOUT) when set, otherwise 30.
+    type: float
   interfaces:
     description: Interfaces to configure.
     type: list
@@ -143,21 +148,21 @@ import logging
 from ansible.module_utils.basic import AnsibleModule
 from netmiko import ConnectHandler
 
-from plugins.module_utils.send_command import (
+from ansible_collections.lachlanstone.jetstream.plugins.module_utils.send_command import (
     send_command,
 )
-from plugins.module_utils.collector import (
+from ansible_collections.lachlanstone.jetstream.plugins.module_utils.collector import (
     ResultCollector,
 )
-from plugins.module_utils.config_mode import (
+from ansible_collections.lachlanstone.jetstream.plugins.module_utils.config_mode import (
     CONFIG_PROMPT,
     ensure_global_config,
     require_config_mode,
 )
-from plugins.module_utils.interfaces.interface_builder import (
+from ansible_collections.lachlanstone.jetstream.plugins.module_utils.interfaces.interface_builder import (
     build_commands,
 )
-from plugins.module_utils.device import (
+from ansible_collections.lachlanstone.jetstream.plugins.module_utils.device import (
     build_device,
 )
 
@@ -290,6 +295,7 @@ def main():
             "username": {"type": "str", "required": True},
             "password": {"type": "str", "no_log": True, "default": ""},
             "enable_password": {"type": "str", "no_log": True, "default": ""},
+            "read_timeout": {"type": "float", "required": False},
             "interfaces": {
                 "type": "list",
                 "elements": "dict",

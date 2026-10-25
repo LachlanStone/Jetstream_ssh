@@ -119,7 +119,10 @@ class ACL:
             state=acl.get("state"),
             is_bound=acl.get("id") in bound_acls,
             is_present=acl.get("id") in current_acls,
-            rules=[ACLRule.from_dict(rule, bound_acls) for rule in acl.get("rules", [])],
+            rules=[
+                ACLRule.from_dict(rule, bound_acls)
+                for rule in (acl.get("rules") or [])
+            ],
         )
 
 

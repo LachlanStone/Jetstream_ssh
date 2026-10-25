@@ -41,6 +41,11 @@ options:
     description: Password for privileged (enable) mode.
     type: str
     default: ""
+  read_timeout:
+    description:
+      - Seconds Netmiko waits for the command prompt before raising a read timeout.
+      - Defaults to C(JETSTREAM_READ_TIMEOUT) when set, otherwise 30.
+    type: float
   state:
     description:
       - V(present) creates the ACL and rules if missing and binds it.
@@ -190,24 +195,24 @@ import logging
 import time
 
 
-from plugins.module_utils.send_command import (
+from ansible_collections.lachlanstone.jetstream.plugins.module_utils.send_command import (
     send_command,
 )
 
-from plugins.module_utils.acls.acls_parsers import (
+from ansible_collections.lachlanstone.jetstream.plugins.module_utils.acls.acls_parsers import (
     get_current_acls,
     get_bound_access_lists,
     get_protocol_number,
     protocol_names,
 )
-from plugins.module_utils.acls.acl_classes import (
+from ansible_collections.lachlanstone.jetstream.plugins.module_utils.acls.acl_classes import (
     ACL,
 )
 
-from plugins.module_utils.collector import (
+from ansible_collections.lachlanstone.jetstream.plugins.module_utils.collector import (
     ResultCollector,
 )  # Import the ResultCollector class from the results_collector module
-from plugins.module_utils.device import (
+from ansible_collections.lachlanstone.jetstream.plugins.module_utils.device import (
     build_device,
 )
 
@@ -658,6 +663,7 @@ def main():
             "username": {"type": "str", "required": True},
             "password": {"type": "str", "no_log": True, "default": ""},
             "enable_password": {"type": "str", "no_log": True, "default": ""},
+            "read_timeout": {"type": "float", "required": False},
             "state": {
                 "type": "str",
                 "choices": ["present", "absent", "unbind", "update"],

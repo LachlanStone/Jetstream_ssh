@@ -1,0 +1,825 @@
+- name: Test all lachlanstone.jetstream modules
+  hosts: prod-switch-01
+  connection: local
+  gather_facts: false
+  environment:
+    ANSIBLE_NET_TEXTFSM: "{{ playbook_dir }}/../../extras/ntc_templates"
+    NET_TEXTFSM: "{{ playbook_dir }}/../../extras/ntc_templates"
+
+  vars:
+    conn: &conn
+      host: "{{ switch_host }}"
+      port: "{{ ssh_port }}"
+      username: "{{ ssh_username }}"
+      password: "{{ ssh_password }}"
+      enable_password: "{{ ssh_enable_password }}"
+
+  tasks:
+
+    # =========================================================================
+    # MODULE: jetstream_command
+    # Covers: single command, command list, command_level (cli/enable/config)
+    # =========================================================================
+
+    - name: "[command] Single command at enable level"
+      lachlanstone.jetstream.jetstream_command:
+        <<: *conn
+        command_level: enable
+        command: "show system-info"
+      register: cmd_single_result
+      ignore_errors: true
+      tags: [jetstream_command, command_single, never]
+
+    - name: "[command] Assert single command succeeded"
+      ansible.builtin.assert:
+        that: cmd_single_result is not failed
+        fail_msg: "command single failed: {{ cmd_single_result.msg | default('no msg') }}"
+      tags: [jetstream_command, command_single, never]
+
+    - name: "[command] Multiple commands at enable level"
+      lachlanstone.jetstream.jetstream_command:
+        <<: *conn
+        command_level: enable
+        commands:
+          - "show system-info"
+          - "show users"
+          - "show vlan"
+      register: cmd_multi_result
+      ignore_errors: true
+      tags: [jetstream_command, command_multi, never]
+
+    - name: "[command] Assert multi-command succeeded"
+      ansible.builtin.assert:
+        that: cmd_multi_result is not failed
+        fail_msg: "command multi failed: {{ cmd_multi_result.msg | default('no msg') }}"
+      tags: [jetstream_command, command_multi, never]
+
+    - name: "[command] Command at cli level (unauthenticated)"
+      lachlanstone.jetstream.jetstream_command:
+        <<: *conn
+        command_level: cli
+        command: "show version"
+      register: cmd_cli_result
+      ignore_errors: true
+      tags: [jetstream_command, command_cli, never]
+
+    - name: "[command] Assert cli-level command succeeded"
+      ansible.builtin.assert:
+        that: cmd_cli_result is not failed
+        fail_msg: "command cli level failed: {{ cmd_cli_result.msg | default('no msg') }}"
+      tags: [jetstream_command, command_cli, never]
+
+    - name: "[command] Command at config level"
+      lachlanstone.jetstream.jetstream_command:
+        <<: *conn
+        command_level: config
+        command: "show running-config"
+      register: cmd_config_result
+      ignore_errors: true
+      tags: [jetstream_command, command_config, never]
+
+    - name: "[command] Assert config-level command succeeded"
+      ansible.builtin.assert:
+        that: cmd_config_result is not failed
+        fail_msg: "command config level failed: {{ cmd_config_result.msg | default('no msg') }}"
+      tags: [jetstream_command, command_config, never]
+
+    # =========================================================================
+    # MODULE: jetstream_system
+    # Covers: system (hostname/location/contact), lldp, dns, ntp
+    # =========================================================================
+
+    - name: "[system] Set hostname, location, and contact"
+      lachlanstone.jetstream.jetstream_system:
+        <<: *conn
+        system:
+          hostname: omada-switch-01
+          location: Server Room
+          contact: admin@example.com
+      register: system_identity_result
+      ignore_errors: true
+      tags: [jetstream_system, system_identity, never]
+
+    - name: "[system] Assert identity config succeeded"
+      ansible.builtin.assert:
+        that: system_identity_result is not failed
+        fail_msg: "system identity failed: {{ system_identity_result.msg | default('no msg') }}"
+      tags: [jetstream_system, system_identity, never]
+
+    - name: "[system] Configure DNS servers"
+      lachlanstone.jetstream.jetstream_system:
+        <<: *conn
+        dns:
+          primary: 8.8.8.8
+          secondary: 1.0.0.1
+      register: system_dns_result
+      ignore_errors: true
+      tags: [jetstream_system, system_dns, never]
+
+    - name: "[system] Assert DNS config succeeded"
+      ansible.builtin.assert:
+        that: system_dns_result is not failed
+        fail_msg: "system dns failed: {{ system_dns_result.msg | default('no msg') }}"
+      tags: [jetstream_system, system_dns, never]
+
+    - name: "[system] Enable global LLDP"
+      lachlanstone.jetstream.jetstream_system:
+        <<: *conn
+        lldp:
+          enabled: true
+      register: system_lldp_on_result
+      ignore_errors: true
+      tags: [jetstream_system, system_lldp, never]
+
+    - name: "[system] Assert LLDP enable succeeded"
+      ansible.builtin.assert:
+        that: system_lldp_on_result is not failed
+        fail_msg: "lldp enable failed: {{ system_lldp_on_result.msg | default('no msg') }}"
+      tags: [jetstream_system, system_lldp, never]
+
+    - name: "[system] Disable global LLDP"
+      lachlanstone.jetstream.jetstream_system:
+        <<: *conn
+        lldp:
+          enabled: false
+      register: system_lldp_off_result
+      ignore_errors: true
+      tags: [jetstream_system, system_lldp, never]
+
+    - name: "[system] Assert LLDP disable succeeded"
+      ansible.builtin.assert:
+        that: system_lldp_off_result is not failed
+        fail_msg: "lldp disable failed: {{ system_lldp_off_result.msg | default('no msg') }}"
+      tags: [jetstream_system, system_lldp, never]
+
+    - name: "[system] Configure NTP"
+      lachlanstone.jetstream.jetstream_system:
+        <<: *conn
+        ntp:
+          type: ntp
+          ntp_utc: "+00:00"
+          ntp_servers:
+            - 192.0.2.123
+            - 198.51.100.123
+          ntp_fetch_time: 60
+      register: system_ntp_result
+      ignore_errors: true
+      tags: [jetstream_system, system_ntp, never]
+
+    - name: "[system] Assert NTP config succeeded"
+      ansible.builtin.assert:
+        that: system_ntp_result is not failed
+        fail_msg: "system ntp failed: {{ system_ntp_result.msg | default('no msg') }}"
+      tags: [jetstream_system, system_ntp, never]
+
+    - name: "[system] Configure all system params together"
+      lachlanstone.jetstream.jetstream_system:
+        <<: *conn
+        system:
+          hostname: omada-switch-01
+          location: Server Room
+          contact: admin@example.com
+        lldp:
+          enabled: true
+        dns:
+          primary: 8.8.8.8
+          secondary: 1.0.0.1
+        ntp:
+          type: ntp
+          ntp_utc: "+00:00"
+          ntp_servers:
+            - 192.0.2.123
+            - 198.51.100.123
+          ntp_fetch_time: 60
+      register: system_all_result
+      ignore_errors: true
+      tags: [jetstream_system, system_all, never]
+
+    - name: "[system] Assert combined system config succeeded"
+      ansible.builtin.assert:
+        that: system_all_result is not failed
+        fail_msg: "system all-params failed: {{ system_all_result.msg | default('no msg') }}"
+      tags: [jetstream_system, system_all, never]
+
+    # =========================================================================
+    # MODULE: jetstream_vlans
+    # Covers: vlan_id+name, ip_address+subnet_mask, ip_dhcp, multiple VLANs
+    # =========================================================================
+
+    - name: "[vlans] Create named VLANs"
+      lachlanstone.jetstream.jetstream_vlans:
+        <<: *conn
+        vlans:
+          - vlan_id: 10
+            name: MANAGEMENT
+          - vlan_id: 20
+            name: SERVERS
+          - vlan_id: 30
+            name: PRINTERS
+      register: vlans_named_result
+      ignore_errors: true
+      tags: [jetstream_vlans, vlans_named, never]
+
+    - name: "[vlans] Assert named VLAN creation succeeded"
+      ansible.builtin.assert:
+        that: vlans_named_result is not failed
+        fail_msg: "vlans named failed: {{ vlans_named_result.msg | default('no msg') }}"
+      tags: [jetstream_vlans, vlans_named, never]
+
+    - name: "[vlans] Create VLAN with static IP address"
+      lachlanstone.jetstream.jetstream_vlans:
+        <<: *conn
+        vlans:
+          - vlan_id: 10
+            name: MANAGEMENT
+            ip_address: 192.168.10.1
+            subnet_mask: 255.255.255.0
+      register: vlans_static_ip_result
+      ignore_errors: true
+      tags: [jetstream_vlans, vlans_static_ip, never]
+
+    - name: "[vlans] Assert static IP VLAN succeeded"
+      ansible.builtin.assert:
+        that: vlans_static_ip_result is not failed
+        fail_msg: "vlans static ip failed: {{ vlans_static_ip_result.msg | default('no msg') }}"
+      tags: [jetstream_vlans, vlans_static_ip, never]
+
+    - name: "[vlans] Create VLAN with DHCP IP"
+      lachlanstone.jetstream.jetstream_vlans:
+        <<: *conn
+        vlans:
+          - vlan_id: 20
+            name: SERVERS
+            ip_dhcp: true
+      register: vlans_dhcp_result
+      ignore_errors: true
+      tags: [jetstream_vlans, vlans_dhcp, never]
+
+    - name: "[vlans] Assert DHCP VLAN succeeded"
+      ansible.builtin.assert:
+        that: vlans_dhcp_result is not failed
+        fail_msg: "vlans dhcp failed: {{ vlans_dhcp_result.msg | default('no msg') }}"
+      tags: [jetstream_vlans, vlans_dhcp, never]
+
+    # =========================================================================
+    # MODULE: jetstream_interfaces
+    # Covers: port_type choices, speed, enabled, description, pvid,
+    #         vlans_untagged, vlans_tagged, vlans_disabled, acceptable_frame_type
+    # =========================================================================
+
+    - name: "[interfaces] Configure gigabitEthernet access port"
+      lachlanstone.jetstream.jetstream_interfaces:
+        <<: *conn
+        interfaces:
+          - name: "1/0/1"
+            port_type: gigabitEthernet
+            speed: "1000"
+            enabled: true
+            description: "Uplink to core"
+            pvid: 10
+            vlans_untagged: [10]
+            vlans_tagged: [20, 30]
+            acceptable_frame_type: all
+      register: iface_gige_result
+      ignore_errors: true
+      tags: [jetstream_interfaces, iface_gige, never]
+
+    - name: "[interfaces] Assert gigabitEthernet port config succeeded"
+      ansible.builtin.assert:
+        that: iface_gige_result is not failed
+        fail_msg: "iface gige failed: {{ iface_gige_result.msg | default('no msg') }}"
+      tags: [jetstream_interfaces, iface_gige, never]
+
+    - name: "[interfaces] Configure tagged-only frame port"
+      lachlanstone.jetstream.jetstream_interfaces:
+        <<: *conn
+        interfaces:
+          - name: "1/0/2"
+            port_type: gigabitEthernet
+            acceptable_frame_type: tagged
+            vlans_tagged: [20, 30]
+            vlans_disabled: [40]
+      register: iface_tagged_result
+      ignore_errors: true
+      tags: [jetstream_interfaces, iface_tagged, never]
+
+    - name: "[interfaces] Assert tagged-frame port config succeeded"
+      ansible.builtin.assert:
+        that: iface_tagged_result is not failed
+        fail_msg: "iface tagged frame failed: {{ iface_tagged_result.msg | default('no msg') }}"
+      tags: [jetstream_interfaces, iface_tagged, never]
+
+    - name: "[interfaces] Disable a port"
+      lachlanstone.jetstream.jetstream_interfaces:
+        <<: *conn
+        interfaces:
+          - name: "1/0/3"
+            port_type: gigabitEthernet
+            enabled: false
+      register: iface_disabled_result
+      ignore_errors: true
+      tags: [jetstream_interfaces, iface_disable, never]
+
+    - name: "[interfaces] Assert port disable succeeded"
+      ansible.builtin.assert:
+        that: iface_disabled_result is not failed
+        fail_msg: "iface disable failed: {{ iface_disabled_result.msg | default('no msg') }}"
+      tags: [jetstream_interfaces, iface_disable, never]
+
+    - name: "[interfaces] Configure auto-speed port"
+      lachlanstone.jetstream.jetstream_interfaces:
+        <<: *conn
+        interfaces:
+          - name: "1/0/4"
+            port_type: gigabitEthernet
+            speed: auto
+      register: iface_auto_result
+      ignore_errors: true
+      tags: [jetstream_interfaces, iface_auto_speed, never]
+
+    - name: "[interfaces] Assert auto-speed config succeeded"
+      ansible.builtin.assert:
+        that: iface_auto_result is not failed
+        fail_msg: "iface auto speed failed: {{ iface_auto_result.msg | default('no msg') }}"
+      tags: [jetstream_interfaces, iface_auto_speed, never]
+
+    - name: "[interfaces] Configure multiple ports in one call"
+      lachlanstone.jetstream.jetstream_interfaces:
+        <<: *conn
+        interfaces:
+          - name: "1/0/5"
+            port_type: gigabitEthernet
+            speed: "100"
+            enabled: true
+            pvid: 20
+            vlans_untagged: [20]
+          - name: "1/0/6"
+            port_type: gigabitEthernet
+            speed: "10"
+            enabled: false
+            description: "Unused"
+      register: iface_multi_result
+      ignore_errors: true
+      tags: [jetstream_interfaces, iface_multi, never]
+
+    - name: "[interfaces] Assert multi-port config succeeded"
+      ansible.builtin.assert:
+        that: iface_multi_result is not failed
+        fail_msg: "iface multi failed: {{ iface_multi_result.msg | default('no msg') }}"
+      tags: [jetstream_interfaces, iface_multi, never]
+
+    # =========================================================================
+    # MODULE: jetstream_user
+    # Covers: single user (present/absent), privilege choices, password_type,
+    #         encryption_type, update_password, save_config, bulk users list
+    # =========================================================================
+
+    - name: "[user] Create admin user with secret (encryption_type 0)"
+      lachlanstone.jetstream.jetstream_user:
+        <<: *conn
+        name: testadmin
+        privilege: admin
+        password_type: secret
+        encryption_type: 0
+        user_password: "AdminPass123!"
+        state: present
+        update_password: always
+        save_config: false
+      register: user_admin_result
+      ignore_errors: true
+      tags: [jetstream_user, user_admin, never]
+
+    - name: "[user] Assert admin user creation succeeded"
+      ansible.builtin.assert:
+        that: user_admin_result is not failed
+        fail_msg: "user admin create failed: {{ user_admin_result.msg | default('no msg') }}"
+      tags: [jetstream_user, user_admin, never]
+
+    - name: "[user] Create operator user with password type (encryption_type 0)"
+      lachlanstone.jetstream.jetstream_user:
+        <<: *conn
+        name: testoperator
+        privilege: operator
+        password_type: password
+        encryption_type: 0
+        user_password: "OperPass123!"
+        state: present
+        update_password: on_create
+      register: user_operator_result
+      ignore_errors: true
+      tags: [jetstream_user, user_operator, never]
+
+    - name: "[user] Assert operator user creation succeeded"
+      ansible.builtin.assert:
+        that: user_operator_result is not failed
+        fail_msg: "user operator failed: {{ user_operator_result.msg | default('no msg') }}"
+      tags: [jetstream_user, user_operator, never]
+
+    - name: "[user] Create guest-privilege user"
+      lachlanstone.jetstream.jetstream_user:
+        <<: *conn
+        name: testguest
+        privilege: guest
+        password_type: secret
+        encryption_type: 0
+        user_password: "GuestPass123!"
+        state: present
+        update_password: always
+      register: user_guest_result
+      ignore_errors: true
+      tags: [jetstream_user, user_guest, never]
+
+    - name: "[user] Assert guest user creation succeeded"
+      ansible.builtin.assert:
+        that: user_guest_result is not failed
+        fail_msg: "user guest failed: {{ user_guest_result.msg | default('no msg') }}"
+      tags: [jetstream_user, user_guest, never]
+
+    - name: "[user] Create power_user and user-privilege accounts"
+      lachlanstone.jetstream.jetstream_user:
+        <<: *conn
+        name: testpower
+        privilege: power_user
+        password_type: secret
+        encryption_type: 0
+        user_password: "PowerPass123!"
+        state: present
+        update_password: always
+      register: user_power_result
+      ignore_errors: true
+      tags: [jetstream_user, user_power, never]
+
+    - name: "[user] Assert power_user creation succeeded"
+      ansible.builtin.assert:
+        that: user_power_result is not failed
+        fail_msg: "user power_user failed: {{ user_power_result.msg | default('no msg') }}"
+      tags: [jetstream_user, user_power, never]
+
+    - name: "[user] Bulk create multiple users in one call"
+      lachlanstone.jetstream.jetstream_user:
+        <<: *conn
+        users:
+          - name: bulkadmin
+            privilege: admin
+            password_type: secret
+            encryption_type: 0
+            password: "BulkAdmin1!"
+            state: present
+            update_password: always
+          - name: bulkguest
+            privilege: guest
+            password_type: password
+            encryption_type: 0
+            password: "BulkGuest1!"
+            state: present
+            update_password: on_create
+          - name: bulkoperator
+            privilege: operator
+            password_type: secret
+            encryption_type: 0
+            password: "BulkOper1!"
+            state: present
+            update_password: always
+      register: user_bulk_result
+      ignore_errors: true
+      tags: [jetstream_user, user_bulk, never]
+
+    - name: "[user] Assert bulk user creation succeeded"
+      ansible.builtin.assert:
+        that: user_bulk_result is not failed
+        fail_msg: "user bulk failed: {{ user_bulk_result.msg | default('no msg') }}"
+      tags: [jetstream_user, user_bulk, never]
+
+    - name: "[user] Remove single user (absent)"
+      lachlanstone.jetstream.jetstream_user:
+        <<: *conn
+        name: testguest
+        state: absent
+      register: user_absent_result
+      ignore_errors: true
+      tags: [jetstream_user, user_absent, never]
+
+    - name: "[user] Assert user removal succeeded"
+      ansible.builtin.assert:
+        that: user_absent_result is not failed
+        fail_msg: "user absent failed: {{ user_absent_result.msg | default('no msg') }}"
+      tags: [jetstream_user, user_absent, never]
+
+    - name: "[user] Bulk remove test users"
+      lachlanstone.jetstream.jetstream_user:
+        <<: *conn
+        users:
+          - name: testadmin
+            state: absent
+          - name: testoperator
+            state: absent
+          - name: testpower
+            state: absent
+          - name: bulkadmin
+            state: absent
+          - name: bulkguest
+            state: absent
+          - name: bulkoperator
+            state: absent
+      register: user_bulk_absent_result
+      ignore_errors: true
+      tags: [jetstream_user, user_bulk_absent, never]
+
+    - name: "[user] Assert bulk removal succeeded"
+      ansible.builtin.assert:
+        that: user_bulk_absent_result is not failed
+        fail_msg: "user bulk absent failed: {{ user_bulk_absent_result.msg | default('no msg') }}"
+      tags: [jetstream_user, user_bulk_absent, never]
+
+    # =========================================================================
+    # MODULE: jetstream_acls
+    # Covers: all states (present/update/unbind/absent), rule_type (ip/combined),
+    #         all protocol_name choices, protocol (int), dport_mask, check_mode
+    # =========================================================================
+
+    - name: "[acls][present] Combined ACL — TCP permit + deny"
+      lachlanstone.jetstream.jetstream_acls:
+        <<: *conn
+        state: present
+        acls:
+          id: "1001"
+          name: ALLOW_WEB
+          vid: 10
+          rule_type: combined
+          rules:
+            - seq: 10
+              action: permit
+              logging: enable
+              sip: 10.0.0.0
+              sip_mask: 255.255.0.0
+              dip: 10.0.0.0
+              dip_mask: 255.255.0.0
+              protocol_name: TCP
+              dport: 443
+            - seq: 20
+              action: deny
+              logging: enable
+              sip: 0.0.0.0
+              sip_mask: 0.0.0.0
+              dip: 0.0.0.0
+              dip_mask: 0.0.0.0
+              protocol_name: TCP
+              dport: 80
+      register: acl_present_result
+      ignore_errors: true
+      tags: [jetstream_acls, acls_present, never]
+
+    - name: "[acls][present] Assert ACL 1001 created"
+      ansible.builtin.assert:
+        that: acl_present_result is not failed
+        fail_msg: "acls present failed: {{ acl_present_result.msg | default('no msg') }}"
+      tags: [jetstream_acls, acls_present, never]
+
+    - name: "[acls][present] ip rule_type — protocol by number"
+      lachlanstone.jetstream.jetstream_acls:
+        <<: *conn
+        state: present
+        acls:
+          id: "1002"
+          name: BLOCK_OSPF
+          vid: 20
+          rule_type: ip
+          rules:
+            - seq: 10
+              action: deny
+              logging: disable
+              protocol: 89
+            - seq: 20
+              action: permit
+              logging: disable
+      register: acl_ip_result
+      ignore_errors: true
+      tags: [jetstream_acls, acls_ip_type, never]
+
+    - name: "[acls][present] Assert ip-type ACL 1002 created"
+      ansible.builtin.assert:
+        that: acl_ip_result is not failed
+        fail_msg: "acls ip type failed: {{ acl_ip_result.msg | default('no msg') }}"
+      tags: [jetstream_acls, acls_ip_type, never]
+
+    - name: "[acls][present] protocol_name — ICMP, UDP, ESP, AH"
+      lachlanstone.jetstream.jetstream_acls:
+        <<: *conn
+        state: present
+        acls:
+          id: "1003"
+          name: PROTO_COVERAGE
+          vid: 30
+          rule_type: combined
+          rules:
+            - seq: 10
+              action: permit
+              logging: enable
+              protocol_name: ICMP
+            - seq: 20
+              action: permit
+              logging: disable
+              protocol_name: UDP
+              dport: 53
+            - seq: 30
+              action: deny
+              logging: disable
+              protocol_name: ESP
+            - seq: 40
+              action: deny
+              logging: disable
+              protocol_name: AH
+      register: acl_proto_result
+      ignore_errors: true
+      tags: [jetstream_acls, acls_protocols, never]
+
+    - name: "[acls][present] Assert ICMP/UDP/ESP/AH ACL created"
+      ansible.builtin.assert:
+        that: acl_proto_result is not failed
+        fail_msg: "acls protocols failed: {{ acl_proto_result.msg | default('no msg') }}"
+      tags: [jetstream_acls, acls_protocols, never]
+
+    - name: "[acls][present] protocol_name — IGMP, IPV6, OSPF"
+      lachlanstone.jetstream.jetstream_acls:
+        <<: *conn
+        state: present
+        acls:
+          id: "1004"
+          name: MISC_PROTO
+          vid: 40
+          rule_type: combined
+          rules:
+            - seq: 10
+              action: permit
+              logging: disable
+              protocol_name: IGMP
+            - seq: 20
+              action: permit
+              logging: disable
+              protocol_name: IPV6
+            - seq: 30
+              action: deny
+              logging: disable
+              protocol_name: OSPF
+      register: acl_misc_proto_result
+      ignore_errors: true
+      tags: [jetstream_acls, acls_misc_protocols, never]
+
+    - name: "[acls][present] Assert IGMP/IPV6/OSPF ACL created"
+      ansible.builtin.assert:
+        that: acl_misc_proto_result is not failed
+        fail_msg: "acls misc protocols failed: {{ acl_misc_proto_result.msg | default('no msg') }}"
+      tags: [jetstream_acls, acls_misc_protocols, never]
+
+    - name: "[acls][present] dport_mask field"
+      lachlanstone.jetstream.jetstream_acls:
+        <<: *conn
+        state: present
+        acls:
+          id: "1005"
+          name: DPORT_MASK
+          vid: 50
+          rule_type: combined
+          rules:
+            - seq: 10
+              action: permit
+              logging: disable
+              protocol_name: TCP
+              dport: 8080
+              dport_mask: 65280
+      register: acl_dport_mask_result
+      ignore_errors: true
+      tags: [jetstream_acls, acls_dport_mask, never]
+
+    - name: "[acls][present] Assert dport_mask ACL created"
+      ansible.builtin.assert:
+        that: acl_dport_mask_result is not failed
+        fail_msg: "acls dport_mask failed: {{ acl_dport_mask_result.msg | default('no msg') }}"
+      tags: [jetstream_acls, acls_dport_mask, never]
+
+    - name: "[acls][update] Replace ACL 1001 rules"
+      lachlanstone.jetstream.jetstream_acls:
+        <<: *conn
+        state: update
+        acls:
+          id: "1001"
+          name: ALLOW_PRINT
+          vid: 10
+          rule_type: combined
+          rules:
+            - seq: 10
+              action: permit
+              logging: enable
+              sip: 10.0.0.0
+              sip_mask: 255.255.0.0
+              dip: 10.0.0.0
+              dip_mask: 255.255.0.0
+              protocol_name: TCP
+              dport: 9100
+            - seq: 20
+              action: deny
+              logging: enable
+              sip: 0.0.0.0
+              sip_mask: 0.0.0.0
+              dip: 0.0.0.0
+              dip_mask: 0.0.0.0
+      register: acl_update_result
+      ignore_errors: true
+      tags: [jetstream_acls, acls_update, never]
+
+    - name: "[acls][update] Assert ACL 1001 update succeeded"
+      ansible.builtin.assert:
+        that: acl_update_result is not failed
+        fail_msg: "acls update failed: {{ acl_update_result.msg | default('no msg') }}"
+      tags: [jetstream_acls, acls_update, never]
+
+    - name: "[acls][unbind] Detach ACL 1001 from VLAN"
+      lachlanstone.jetstream.jetstream_acls:
+        <<: *conn
+        state: unbind
+        acls:
+          id: "1001"
+      register: acl_unbind_result
+      ignore_errors: true
+      tags: [jetstream_acls, acls_unbind, never, testing]
+
+    - name: "[acls][unbind] Assert ACL 1001 unbound"
+      ansible.builtin.assert:
+        that: acl_unbind_result is not failed
+        fail_msg: "acls unbind failed: {{ acl_unbind_result.msg | default('no msg') }}"
+      tags: [jetstream_acls, acls_unbind, never, testing]
+
+    - name: "[acls][check_mode] Present — no changes written"
+      lachlanstone.jetstream.jetstream_acls:
+        <<: *conn
+        state: present
+        acls:
+          id: "1099"
+          name: CHECK_MODE_ONLY
+          vid: 99
+          rule_type: combined
+          rules:
+            - seq: 10
+              action: permit
+              logging: disable
+              protocol_name: TCP
+              dport: 443
+      check_mode: true
+      register: acl_check_result
+      ignore_errors: true
+      tags: [jetstream_acls, acls_check_mode, never]
+
+    - name: "[acls][check_mode] Assert check_mode did not fail"
+      ansible.builtin.assert:
+        that: acl_check_result is not failed
+        fail_msg: "acls check_mode failed: {{ acl_check_result.msg | default('no msg') }}"
+      tags: [jetstream_acls, acls_check_mode, never]
+
+    - name: "[acls][absent] Remove all test ACLs"
+      lachlanstone.jetstream.jetstream_acls:
+        <<: *conn
+        state: absent
+        acls:
+          id: "{{ item }}"
+      loop: ["1001", "1002", "1003", "1004", "1005"]
+      register: acl_absent_result
+      ignore_errors: true
+      tags: [jetstream_acls, acls_absent, never]
+
+    - name: "[acls][absent] Assert all ACLs removed"
+      ansible.builtin.assert:
+        that: acl_absent_result is not failed
+        fail_msg: "acls absent failed for one or more IDs"
+      tags: [jetstream_acls, acls_absent, never]
+
+    # =========================================================================
+    # MODULE: jetstream_save
+    # Covers: default save (copy running-config startup-config), write method
+    # =========================================================================
+
+    - name: "[save] Save config — copy running-config startup-config (default)"
+      lachlanstone.jetstream.jetstream_save:
+        <<: *conn
+      register: save_default_result
+      ignore_errors: true
+      tags: [jetstream_save, save_default, never]
+
+    - name: "[save] Assert default save succeeded"
+      ansible.builtin.assert:
+        that: save_default_result is not failed
+        fail_msg: "save default failed: {{ save_default_result.msg | default('no msg') }}"
+      tags: [jetstream_save, save_default, never]
+
+    - name: "[save] Save config — write method"
+      lachlanstone.jetstream.jetstream_save:
+        <<: *conn
+        command: "write"
+      register: save_write_result
+      ignore_errors: true
+      tags: [jetstream_save, save_write, never]
+
+    - name: "[save] Assert write-method save succeeded"
+      ansible.builtin.assert:
+        that: save_write_result is not failed
+        fail_msg: "save write failed: {{ save_write_result.msg | default('no msg') }}"
+      tags: [jetstream_save, save_write, never]

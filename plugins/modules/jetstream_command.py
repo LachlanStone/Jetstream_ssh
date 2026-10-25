@@ -42,6 +42,11 @@ options:
     description: Password for privileged (enable) mode.
     type: str
     default: ""
+  read_timeout:
+    description:
+      - Seconds Netmiko waits for the command prompt before raising a read timeout.
+      - Defaults to C(JETSTREAM_READ_TIMEOUT) when set, otherwise 30.
+    type: float
   command_level:
     description:
       - CLI mode to run the commands in.
@@ -102,7 +107,10 @@ commands:
 
 from ansible.module_utils.basic import AnsibleModule
 from netmiko import ConnectHandler
-import os
+
+from ansible_collections.lachlanstone.jetstream.plugins.module_utils.device import (
+    build_device,
+)
 
 def parse_output(output):
     parsed = {}
@@ -114,14 +122,7 @@ def parse_output(output):
 
 
 def send_commands(params):
-    device = {
-        "device_type": "tplink_jetstream",
-        "host": params["host"],
-        "port": params["port"],
-        "username": params["username"],
-        "password": params["password"],
-        "secret": params["enable_password"],
-    }
+    device = build_device(params)
     cmds = params["commands"] or ([params["command"]] if params.get("command") else ["show system-info"])
 
     with ConnectHandler(**device) as net_connect:
@@ -150,6 +151,7 @@ def main():
             "username": {"type": "str", "required": True},
             "password": {"type": "str", "no_log": True, "default": ""},
             "enable_password": {"type": "str", "no_log": True, "default": ""},
+            "read_timeout": {"type": "float", "required": False},
             "command_level": {"type": "str", "choices": ["cli", "enable", "config"], "default": "cli"},
             "command": {"type": "str", "required": False},
             "commands": {"type": "list", "elements": "str", "required": False},
