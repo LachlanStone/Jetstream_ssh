@@ -107,7 +107,7 @@ commands:
 
 from ansible.module_utils.basic import AnsibleModule
 from netmiko import ConnectHandler
-
+from netmiko.utilities import structured_data_converter
 from ansible_collections.lachlanstone.jetstream.plugins.module_utils.device import (
     build_device,
 )
@@ -135,8 +135,13 @@ def send_commands(params):
             net_connect.config_mode()
         results = []
         for cmd in cmds:
-            textfsm_parsed = net_connect.send_command(cmd, use_textfsm=True, auto_find_prompt=True)
-            raw = net_connect.send_command(cmd)
+            raw = net_connect.send_command(cmd, auto_find_prompt=True)
+            textfsm_parsed = structured_data_converter(
+                raw_data=raw,
+                command=cmd,
+                platform=net_connect.device_type,
+                use_textfsm=True,
+            )
             lines = [line.strip() for line in raw.splitlines() if line.strip()]
             item = {"command": cmd, "stdout": raw, "stdout_lines": lines, "textfsm_parsed": textfsm_parsed}
             parsed = parse_output(raw)
