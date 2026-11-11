@@ -143,6 +143,7 @@ class TestJetstreamAcls(unittest.TestCase):
 
         self.assertIsNotNone(result)
         self.assertIn("steps", result)
+        fake_conn.enable.assert_called_once()
 
 
 if __name__ == "__main__":

@@ -581,6 +581,7 @@ def run_modules(module):
     device = build_device(module)
     requested_acls = module.params.get("acls") or []
     with ConnectHandler(**device) as net_connect:
+        net_connect.enable()
         config = net_connect.config_mode()
         logger.info(f"Entered configuration mode: {config}")
         bound_acls = get_bound_access_lists(net_connect)
