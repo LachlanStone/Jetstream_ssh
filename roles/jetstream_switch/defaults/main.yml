@@ -1,0 +1,260 @@
+---
+# Shared connection parameters passed via `args:` to every task.
+# Kept at defaults level so users can tune it once.
+
+jetstream_host: "{{ inventory_hostname }}"
+jetstream_port: 22
+jetstream_username: admin
+jetstream_password: ""
+jetstream_enable_password: ""
+jetstream_read_timeout: 30
+
+jetstream_connection_defaults:
+  host: "{{ jetstream_host }}"
+  port: "{{ jetstream_port }}"
+  username: "{{ jetstream_username }}"
+  password: "{{ jetstream_password }}"
+  enable_password: "{{ jetstream_enable_password }}"
+  read_timeout: "{{ jetstream_read_timeout }}"
+
+# ------------------------------------------------------------------
+# Feature toggles
+# ------------------------------------------------------------------
+jetstream_manage_system: false
+jetstream_manage_users: false
+jetstream_manage_vlans: false
+jetstream_manage_interfaces: true
+jetstream_manage_acls: false
+jetstream_save_config: false
+jetstream_save_when: always          # 'always' or 'on-change'
+
+# ------------------------------------------------------------------
+# System (jetstream_system)
+# ------------------------------------------------------------------
+jetstream_lldp:
+  enabled: true
+
+jetstream_dns:
+  primary: 8.8.8.8
+  secondary: 8.8.4.4
+
+jetstream_ntp:
+  type: ntp
+  ntp_utc: "+00:00"
+  ntp_servers:
+    - 10.10.30.10
+    - 10.10.30.11
+  ntp_fetch_time: 30
+
+# ------------------------------------------------------------------
+# Users (jetstream_user)
+# ------------------------------------------------------------------
+jetstream_users:
+  - name: admin
+    privilege: admin
+    password_type: password
+    encryption_type: 0
+    password: password
+    state: present
+    update_password: on_create
+
+# ------------------------------------------------------------------
+# VLANs (jetstream_vlans)
+# ------------------------------------------------------------------
+jetstream_vlans:
+  - vlan_id: 110
+    name: VLAN110
+    ip_address: 10.110.0.1
+    subnet_mask: 255.255.255.0
+  - vlan_id: 3901
+    name: VLAN3901
+    ip_address: 172.31.91.1
+    subnet_mask: 255.255.255.0
+
+# ------------------------------------------------------------------
+# Interfaces (jetstream_interfaces) — all ports on the switch.
+# Tw ports are two-gigabitEthernet (1/0/1-24), Te ports are
+# ten-gigabitEthernet (1/0/25-28). All default to PVID 1, General
+# (acceptable_frame_type: all), enabled.
+# ------------------------------------------------------------------
+jetstream_interfaces:
+  - name: 1/0/1
+    port_type: two-gigabitEthernet
+    enabled: true
+    pvid: 1
+    acceptable_frame_type: all
+    vlans_tagged: [110]
+  - name: 1/0/2
+    port_type: two-gigabitEthernet
+    enabled: true
+    pvid: 1
+    acceptable_frame_type: all
+    vlans_tagged: [110]
+  - name: 1/0/3
+    port_type: two-gigabitEthernet
+    enabled: true
+    pvid: 1
+    acceptable_frame_type: all
+    vlans_tagged: [110]
+  - name: 1/0/4
+    port_type: two-gigabitEthernet
+    enabled: true
+    pvid: 1
+    acceptable_frame_type: all
+    vlans_tagged: [110]
+  - name: 1/0/5
+    port_type: two-gigabitEthernet
+    enabled: true
+    pvid: 1
+    acceptable_frame_type: all
+    vlans_tagged: [110]
+  - name: 1/0/6
+    port_type: two-gigabitEthernet
+    enabled: true
+    pvid: 1
+    acceptable_frame_type: all
+    vlans_tagged: [110]
+  - name: 1/0/7
+    port_type: two-gigabitEthernet
+    enabled: true
+    pvid: 1
+    acceptable_frame_type: all
+    vlans_tagged: [110]
+  - name: 1/0/8
+    port_type: two-gigabitEthernet
+    enabled: true
+    pvid: 1
+    acceptable_frame_type: all
+    vlans_tagged: [110]
+  - name: 1/0/9
+    port_type: two-gigabitEthernet
+    enabled: true
+    pvid: 1
+    acceptable_frame_type: all
+    vlans_tagged: [110]
+  - name: 1/0/10
+    port_type: two-gigabitEthernet
+    enabled: true
+    pvid: 1
+    acceptable_frame_type: all
+    vlans_tagged: [110]
+  - name: 1/0/11
+    port_type: two-gigabitEthernet
+    enabled: true
+    pvid: 1
+    acceptable_frame_type: all
+    vlans_tagged: [110]
+  - name: 1/0/12
+    port_type: two-gigabitEthernet
+    enabled: true
+    pvid: 1
+    acceptable_frame_type: all
+    vlans_tagged: [110]
+  - name: 1/0/13
+    port_type: two-gigabitEthernet
+    enabled: true
+    pvid: 1
+    acceptable_frame_type: all
+    vlans_tagged: [110]
+  - name: 1/0/14
+    port_type: two-gigabitEthernet
+    enabled: true
+    pvid: 1
+    acceptable_frame_type: all
+  - name: 1/0/15
+    port_type: two-gigabitEthernet
+    enabled: true
+    pvid: 1
+    acceptable_frame_type: all
+  - name: 1/0/16
+    port_type: two-gigabitEthernet
+    enabled: true
+    pvid: 1
+    acceptable_frame_type: all
+  - name: 1/0/17
+    port_type: two-gigabitEthernet
+    enabled: true
+    pvid: 1
+    acceptable_frame_type: all
+  - name: 1/0/18
+    port_type: two-gigabitEthernet
+    enabled: true
+    pvid: 1
+    acceptable_frame_type: all
+  - name: 1/0/19
+    port_type: two-gigabitEthernet
+    enabled: true
+    pvid: 1
+    acceptable_frame_type: all
+  - name: 1/0/20
+    port_type: two-gigabitEthernet
+    enabled: true
+    pvid: 1
+    acceptable_frame_type: all
+  - name: 1/0/21
+    port_type: two-gigabitEthernet
+    enabled: true
+    pvid: 1
+    acceptable_frame_type: all
+  - name: 1/0/22
+    port_type: two-gigabitEthernet
+    enabled: true
+    pvid: 1
+    acceptable_frame_type: all
+  - name: 1/0/23
+    port_type: two-gigabitEthernet
+    enabled: true
+    pvid: 1
+    acceptable_frame_type: all
+  - name: 1/0/24
+    port_type: two-gigabitEthernet
+    enabled: true
+    pvid: 1
+    acceptable_frame_type: all
+  - name: 1/0/25
+    port_type: ten-gigabitEthernet
+    enabled: true
+    pvid: 1
+    vlans_tagged: [110, 120]
+    vlans_untagged: [10]
+    acceptable_frame_type: all
+  - name: 1/0/26
+    port_type: ten-gigabitEthernet
+    enabled: true
+    pvid: 1
+    vlans_tagged: [110, 120]
+    vlans_untagged: [10]
+    acceptable_frame_type: all
+  - name: 1/0/27
+    port_type: ten-gigabitEthernet
+    enabled: true
+    pvid: 1
+    vlans_tagged: [110, 120]
+    vlans_disabled: [10]
+    acceptable_frame_type: all
+# LACP-style trunk example on one uplink: description + all VLANs tagged.
+  - name: 1/0/28
+    port_type: ten-gigabitEthernet
+    enabled: true
+    description: "Trunk uplink to core switch"
+    pvid: 1
+    acceptable_frame_type: tagged
+    vlans_tagged: [110, 3901]
+    vlans_untagged: [10]
+
+# ------------------------------------------------------------------
+# ACLs (jetstream_acls)
+# ------------------------------------------------------------------
+jetstream_acls_state: present        # present, absent, unbind, update
+jetstream_acls: []
+
+# ------------------------------------------------------------------
+# Ad-hoc commands (jetstream_command)
+# ------------------------------------------------------------------
+jetstream_command_level: config      # cli, enable, config
+jetstream_commands: []
+
+# ------------------------------------------------------------------
+# Save (jetstream_save)
+# ------------------------------------------------------------------
+jetstream_save_command: "copy running-config startup-config"

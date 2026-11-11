@@ -1,0 +1,66 @@
+---
+# Runs every module in the lachlanstone.jetstream collection, feature by feature.
+# Each feature block is guarded by a flag so it can be skipped independently.
+# The shared connection args come from a dict via the `args:` keyword.
+
+- name: System - hostname, location, contact, LLDP, DNS, NTP
+  lachlanstone.jetstream.jetstream_system:
+    system: "{{ jetstream_system | default(omit) }}"
+    lldp: "{{ jetstream_lldp | default(omit) }}"
+    dns: "{{ jetstream_dns | default(omit) }}"
+    ntp: "{{ jetstream_ntp | default(omit) }}"
+  args: "{{ jetstream_connection_defaults }}"
+  when: jetstream_manage_system
+
+- name: Users - local accounts
+  lachlanstone.jetstream.jetstream_user:
+    users: "{{ jetstream_users }}"
+    save_config: false
+  args: "{{ jetstream_connection_defaults }}"
+  when:
+    - jetstream_manage_users
+    - jetstream_users | length > 0
+
+- name: VLANs and SVIs
+  lachlanstone.jetstream.jetstream_vlans:
+    vlans: "{{ jetstream_vlans }}"
+  args: "{{ jetstream_connection_defaults }}"
+  when:
+    - jetstream_manage_vlans
+    - jetstream_vlans | length > 0
+
+- name: Interfaces
+  lachlanstone.jetstream.jetstream_interfaces:
+    interfaces: "{{ jetstream_interfaces }}"
+  args: "{{ jetstream_connection_defaults }}"
+  when:
+    - jetstream_manage_interfaces
+    - jetstream_interfaces | length > 0
+
+- name: ACLs
+  lachlanstone.jetstream.jetstream_acls:
+    state: "{{ jetstream_acls_state }}"
+    acls: "{{ item }}"
+  args: "{{ jetstream_connection_defaults }}"
+  loop: "{{ jetstream_acls }}"
+  loop_control:
+    label: "{{ item.id | default('acl') }}"
+  when:
+    - jetstream_manage_acls
+    - jetstream_acls | length > 0
+
+- name: Ad-hoc commands
+  lachlanstone.jetstream.jetstream_command:
+    command_level: "{{ jetstream_command_level }}"
+    commands: "{{ jetstream_commands }}"
+  args: "{{ jetstream_connection_defaults }}"
+  register: jetstream_command_result
+  when: jetstream_commands | length > 0
+
+- name: Save running config to startup
+  lachlanstone.jetstream.jetstream_save:
+    command: "{{ jetstream_save_command }}"
+  args: "{{ jetstream_connection_defaults }}"
+  when:
+    - jetstream_save_config
+    - jetstream_save_when in ['always', 'on-change']

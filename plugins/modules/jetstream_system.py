@@ -240,6 +240,7 @@ def set_general_information(net_connect, system, collector, check_mode=False):
         check_mode: When True, report what *would* change without sending
             commands to the device.
     """
+    system = system or {}
     changed = False
     params_to_commands: dict[str, str] = {
         "hostname": "hostname",
