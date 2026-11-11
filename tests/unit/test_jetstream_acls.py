@@ -2,8 +2,13 @@ import unittest
 import unittest.mock as mock
 
 from plugins.module_utils.collector import ResultCollector
-from plugins.module_utils.acls.acl_classes import ACL
-from plugins.modules.jetstream_acls import unbind_acl, remove_acl, run_modules
+from plugins.module_utils.acls.acl_classes import ACL, ACLRule
+from plugins.modules.jetstream_acls import (
+    create_and_update_acl_rules,
+    unbind_acl,
+    remove_acl,
+    run_modules,
+)
 from fake_module import FakeModule
 
 
@@ -18,6 +23,46 @@ class TestJetstreamAcls(unittest.TestCase):
 
         self.assertEqual(acl.id, "100")
         self.assertEqual(acl.rules, [])
+
+    def test_rule_from_dict_logging_disable(self):
+        rule = ACLRule.from_dict({"logging": "disable"}, {})
+
+        self.assertFalse(rule.logging)
+
+    def test_rule_from_dict_logging_disable_builds_disable_command(self):
+        rule = ACLRule.from_dict(
+            {"seq": 10, "action": "permit", "logging": "disable"}, {}
+        )
+        acl = ACL(id="100", name="TEST_ACL", vid=None, rule_type="ip", rules=[rule])
+        fake_module = FakeModule({})
+        fake_module.check_mode = True
+
+        create_and_update_acl_rules(None, self.collector, fake_module, acl, {})
+
+        command = self.collector._steps[-1]["command"]
+        self.assertIn("logging disable", command)
+        self.assertNotIn("logging enable", command)
+
+    def test_rule_from_dict_logging_enable(self):
+        rule = ACLRule.from_dict({"logging": "enable"}, {})
+
+        self.assertTrue(rule.logging)
+
+    def test_rule_from_dict_logging_omitted(self):
+        rule = ACLRule.from_dict({"seq": 10, "action": "permit"}, {})
+
+        self.assertFalse(rule.logging)
+
+    def test_rule_from_dict_logging_none(self):
+        rule = ACLRule.from_dict({"logging": None}, {})
+
+        self.assertFalse(rule.logging)
+
+    def test_rule_from_dict_logging_invalid(self):
+        with self.assertRaises(ValueError) as ctx:
+            ACLRule.from_dict({"logging": "yes"}, {})
+
+        self.assertIn("yes", str(ctx.exception))
 
     def test_unbind_acl_state_present(self):
         fake_module = FakeModule({"state": "present"})
