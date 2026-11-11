@@ -381,7 +381,7 @@
         privilege: admin
         password_type: secret
         encryption_type: 0
-        user_password: "AdminPass123!"
+        user_password: "{{ jetstream_test_user_password }}"
         state: present
         update_password: always
         save_config: false
@@ -402,7 +402,7 @@
         privilege: operator
         password_type: password
         encryption_type: 0
-        user_password: "OperPass123!"
+        user_password: "{{ jetstream_test_user_password }}"
         state: present
         update_password: on_create
       register: user_operator_result
@@ -422,7 +422,7 @@
         privilege: guest
         password_type: secret
         encryption_type: 0
-        user_password: "GuestPass123!"
+        user_password: "{{ jetstream_test_user_password }}"
         state: present
         update_password: always
       register: user_guest_result
@@ -442,7 +442,7 @@
         privilege: power_user
         password_type: secret
         encryption_type: 0
-        user_password: "PowerPass123!"
+        user_password: "{{ jetstream_test_user_password }}"
         state: present
         update_password: always
       register: user_power_result
@@ -463,21 +463,21 @@
             privilege: admin
             password_type: secret
             encryption_type: 0
-            password: "BulkAdmin1!"
+            password: "{{ jetstream_test_user_password }}"
             state: present
             update_password: always
           - name: bulkguest
             privilege: guest
             password_type: password
             encryption_type: 0
-            password: "BulkGuest1!"
+            password: "{{ jetstream_test_user_password }}"
             state: present
             update_password: on_create
           - name: bulkoperator
             privilege: operator
             password_type: secret
             encryption_type: 0
-            password: "BulkOper1!"
+            password: "{{ jetstream_test_user_password }}"
             state: present
             update_password: always
       register: user_bulk_result

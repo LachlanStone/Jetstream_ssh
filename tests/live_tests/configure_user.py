@@ -50,7 +50,7 @@ if __name__ == "__main__":
         "privilege": "operator",
         "password_type": "secret",
         "encryption_type": 0,
-        "user_password": "TestPassword123!",
+        "user_password": os.environ.get("JETSTREAM_TEST_USER_PASSWORD", "CHANGEME"),
         "state": "present",
         "save_config": False,
     }

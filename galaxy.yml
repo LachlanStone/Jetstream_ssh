@@ -29,3 +29,5 @@ build_ignore:
   - "*.pytest_cache"
   - user-design.md
   - .pre-commit-config.yaml
+  - .envrc
+  - tests
