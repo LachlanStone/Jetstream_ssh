@@ -34,12 +34,13 @@ class TestJetstreamInterfaces(unittest.TestCase):
         self.assertIn("switchport general allowed vlan 200,300 tagged", cmds)
         self.assertEqual(cmds[-1], "exit")
 
-    def test_omitted_options_are_left_unchanged(self):
-        # Shaped like Ansible output: every omitted suboption is present with None.
+    def test_ansible_filled_options_do_not_reset_settings(self):
+        # Shaped like Ansible output: omitted suboptions are present, and speed
+        # defaults to "auto". Only speed is sent; PVID and description stay as-is.
         iface = {
             "name": "1/0/1",
-            "port_type": "gigabitEthernet",
-            "speed": None,
+            "port_type": "two-gigabitEthernet",
+            "speed": "auto",
             "enabled": True,
             "description": None,
             "pvid": None,
@@ -52,14 +53,21 @@ class TestJetstreamInterfaces(unittest.TestCase):
         self.assertEqual(
             cmds,
             [
-                "interface gigabitEthernet 1/0/1",
+                "interface two-gigabitEthernet 1/0/1",
                 "no shutdown",
+                "speed auto",
                 "exit",
             ],
         )
         self.assertNotIn("no speed", cmds)
         self.assertNotIn("no switchport pvid", cmds)
         self.assertNotIn("no description", cmds)
+
+    def test_none_speed_is_left_unchanged(self):
+        cmds = build_commands({"name": "1/0/1", "speed": None})
+
+        self.assertNotIn("no speed", cmds)
+        self.assertFalse(any(cmd.startswith("speed ") for cmd in cmds))
 
     def test_empty_description_clears_it(self):
         cmds = build_commands({"name": "1/0/1", "description": ""})

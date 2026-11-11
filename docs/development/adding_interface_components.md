@@ -149,14 +149,14 @@ python3 -c "import ast, pathlib; ast.parse(pathlib.Path('plugins/modules/jetstre
 | YAML field | Python key | Type | Default | CLI command emitted |
 |---|---|---|---|---|
 | `name` | `name` | str | — required | port ID portion of `interface <port-type> X/Y/Z` |
-| `port_type` | `port_type` | str | `"gigabitEthernet"` | interface prefix: `gigabitEthernet` / `two-gigabitEthernet` / `ten-gigabitEthernet` / `fastEthernet` |
-| `speed` | `speed` | str | `None` (omitted) | `speed <value>` — choices: `10`, `100`, `1000`, `2500`, `10000`, `auto` |
+| `port_type` | `port_type` | str | `"two-gigabitEthernet"` | interface prefix: `gigabitEthernet` / `two-gigabitEthernet` / `ten-gigabitEthernet` / `fastEthernet` |
+| `speed` | `speed` | str | `"auto"` | `speed <value>` — choices: `10`, `100`, `1000`, `2500`, `10000`, `auto` |
 | `enabled` | `enabled` | bool | `None` (omitted) | `no shutdown` when `True`, `shutdown` when `False`, nothing when omitted |
 | `pvid` | `pvid` | int | `None` (omitted) | `switchport pvid <N>` |
 | `vlans_untagged` | `vlans_untagged` | list[int] | `[]` | `switchport general allowed vlan <N,...> untagged` |
 | `vlans_tagged` | `vlans_tagged` | list[int] | `[]` | `switchport general allowed vlan <N,...> tagged` |
 | `acceptable_frame_type` | `acceptable_frame_type` | str | `"all"` | `switchport general acceptable-frame-type tagged-only` (skipped when `"all"`) |
-| `description` | `description` | str | `None` | `description <text>` (quoted if contains spaces) |
+| `description` | `description` | str | `None` | `description <text>` (quoted if contains spaces), `no description` when explicitly `""` |
 
 ### `port_type` vs `speed` — important distinction
 
@@ -168,7 +168,7 @@ interface ten-gigabitEthernet 1/0/25
 speed 1000
 ```
 
-Omitting `port_type` defaults to `gigabitEthernet`, correct for the vast majority of ports. Set it explicitly only for 2.5G, 10G, or 100M ports.
+Omitting `port_type` defaults to `two-gigabitEthernet`, which matches the ports this collection targets by default. Set it explicitly for 1G, 10G, or 100M ports.
 
 > **Alias note:** `_PORT_TYPE_CLI` in the builder also accepts short aliases
 > (`gi`, `tw`, `te`, `fa`). These are intentionally **not** listed in the
@@ -181,9 +181,10 @@ Omitting `port_type` defaults to `gigabitEthernet`, correct for the vast majorit
 ## Invariants — never break these
 
 - `build_commands` has no side effects. Same input → same output, always.
-- A field set to its default value must not emit a CLI command.
+- A field whose default is `None` must not emit a CLI command when omitted.
   The switch is already in that state; pushing it again wastes a round-trip and
-  makes diffs noisy.
+  makes diffs noisy. `speed` is the exception: its default is `auto`, so it
+  intentionally sends `speed auto` on every run.
 - `exit` is always the last command in the returned list. The switch context
   must be back at global config before the next interface block starts.
 - `description` is always the last substantive command, before `exit`.

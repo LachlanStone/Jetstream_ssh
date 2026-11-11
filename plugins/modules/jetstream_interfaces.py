@@ -61,13 +61,14 @@ options:
         description: Interface type used to build the CLI interface token.
         type: str
         choices: [gigabitEthernet, two-gigabitEthernet, ten-gigabitEthernet, fastEthernet]
-        default: gigabitEthernet
+        default: two-gigabitEthernet
       speed:
         description:
           - Port speed in Mbps, or V(auto).
-          - When omitted, the configured speed is left unchanged.
+          - When omitted, V(auto) is sent.
         type: str
         choices: ["10", "100", "1000", "2500", "10000", auto]
+        default: auto
       enabled:
         description:
           - Whether the port is administratively enabled.
