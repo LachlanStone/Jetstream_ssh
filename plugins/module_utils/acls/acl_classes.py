@@ -6,6 +6,28 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+def _normalize_logging(value):
+    """Normalize the module's ``logging`` option to a bool.
+
+    Ansible passes the option through as the string ``enable``/``disable``, so
+    storing it raw would make the string ``disable`` truthy. ``None`` (option
+    omitted) means disabled.
+    """
+    if isinstance(value, bool):
+        return value
+    if value is None:
+        return False
+    if isinstance(value, str):
+        normalized = value.lower()
+        if normalized == "enable":
+            return True
+        if normalized == "disable":
+            return False
+    raise ValueError(
+        f"Invalid logging value {value!r}: expected 'enable' or 'disable'"
+    )
+
+
 @dataclass
 class ACLRule:
     """
@@ -54,7 +76,7 @@ class ACLRule:
         return cls(
             seq=acl.get("seq"),
             action=acl.get("action"),
-            logging=acl.get("logging", False),
+            logging=_normalize_logging(acl.get("logging")),
             sip=acl.get("sip"),
             sip_mask=acl.get("sip_mask"),
             dip=acl.get("dip"),
