@@ -63,17 +63,25 @@ options:
         choices: [gigabitEthernet, two-gigabitEthernet, ten-gigabitEthernet, fastEthernet]
         default: gigabitEthernet
       speed:
-        description: Port speed in Mbps, or V(auto).
+        description:
+          - Port speed in Mbps, or V(auto).
+          - When omitted, the configured speed is left unchanged.
         type: str
         choices: ["10", "100", "1000", "2500", "10000", auto]
       enabled:
-        description: Whether the port is administratively enabled.
+        description:
+          - Whether the port is administratively enabled.
+          - When omitted, the administrative state is left unchanged.
         type: bool
       description:
-        description: Port description.
+        description:
+          - Port description.
+          - When omitted, the description is left unchanged. Set to an empty string to clear it.
         type: str
       pvid:
-        description: Port VLAN ID for untagged traffic.
+        description:
+          - Port VLAN ID for untagged traffic.
+          - When omitted, the PVID is left unchanged.
         type: int
       vlans_untagged:
         description: VLAN IDs the port carries untagged.

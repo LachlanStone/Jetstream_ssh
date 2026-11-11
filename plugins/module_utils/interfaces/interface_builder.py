@@ -59,6 +59,8 @@ def build_commands(iface):
             Optional keys: ``port_type``, ``speed``, ``enabled``,
                            ``description``, ``pvid``, ``vlans_untagged``,
                            ``vlans_tagged``, ``acceptable_frame_type``.
+            A value of None (Ansible's value for an omitted suboption) means
+            "leave the switch setting unchanged".
 
     Returns:
         list[str]: Commands ready to send inside config mode, without
@@ -79,19 +81,14 @@ def build_commands(iface):
     elif enabled is True:
         cmds.append("no shutdown")
 
-    if "speed" in iface:
-        speed = iface["speed"]
-        if speed is None:
-            cmds.append("no speed")
-        else:
-            cmds.append(f"speed {speed}")
+    # A None value means the user did not set the option: leave the switch as-is.
+    speed = iface.get("speed")
+    if speed is not None:
+        cmds.append(f"speed {speed}")
 
-    if "pvid" in iface:
-        pvid = iface["pvid"]
-        if pvid is None:
-            cmds.append("no switchport pvid")
-        else:
-            cmds.append(f"switchport pvid {pvid}")
+    pvid = iface.get("pvid")
+    if pvid is not None:
+        cmds.append(f"switchport pvid {pvid}")
 
     vlans_untagged = iface.get("vlans_untagged") or []
     if vlans_untagged:
@@ -113,14 +110,16 @@ def build_commands(iface):
         cmds.append(f"switchport general acceptable-frame-type tagged-only")
 
     description = iface.get("description")
-    if description:
-        # Wrap in quotes only when the description contains spaces.
-        if " " in description:
-            cmds.append(f'description "{description}"')
+    if description is not None:
+        if description:
+            # Wrap in quotes only when the description contains spaces.
+            if " " in description:
+                cmds.append(f'description "{description}"')
+            else:
+                cmds.append(f"description {description}")
         else:
-            cmds.append(f"description {description}")
-    if description is None:
-        cmds.append("no description")
+            # Explicit empty string clears the description.
+            cmds.append("no description")
 
     # Return to global config context after each interface block.
     cmds.append("exit")
