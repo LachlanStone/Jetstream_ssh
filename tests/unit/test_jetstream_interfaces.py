@@ -34,9 +34,9 @@ class TestJetstreamInterfaces(unittest.TestCase):
         self.assertIn("switchport general allowed vlan 200,300 tagged", cmds)
         self.assertEqual(cmds[-1], "exit")
 
-    def test_ansible_filled_options_do_not_reset_settings(self):
-        # Shaped like Ansible output: omitted suboptions are present, and speed
-        # defaults to "auto". Only speed is sent; PVID and description stay as-is.
+    def test_ansible_filled_options_emit_auto_speed_and_clear_pvid(self):
+        # Shaped like Ansible output: omitted suboptions are present, speed
+        # defaults to "auto", and an omitted PVID is cleared.
         iface = {
             "name": "1/0/1",
             "port_type": "two-gigabitEthernet",
@@ -56,18 +56,22 @@ class TestJetstreamInterfaces(unittest.TestCase):
                 "interface two-gigabitEthernet 1/0/1",
                 "no shutdown",
                 "speed auto",
+                "no switchport pvid",
                 "exit",
             ],
         )
         self.assertNotIn("no speed", cmds)
-        self.assertNotIn("no switchport pvid", cmds)
         self.assertNotIn("no description", cmds)
 
-    def test_none_speed_is_left_unchanged(self):
+    def test_none_speed_clears_it(self):
         cmds = build_commands({"name": "1/0/1", "speed": None})
 
-        self.assertNotIn("no speed", cmds)
-        self.assertFalse(any(cmd.startswith("speed ") for cmd in cmds))
+        self.assertIn("no speed", cmds)
+
+    def test_none_pvid_clears_it(self):
+        cmds = build_commands({"name": "1/0/1", "pvid": None})
+
+        self.assertIn("no switchport pvid", cmds)
 
     def test_empty_description_clears_it(self):
         cmds = build_commands({"name": "1/0/1", "description": ""})

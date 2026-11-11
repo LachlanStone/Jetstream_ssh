@@ -65,7 +65,7 @@ options:
       speed:
         description:
           - Port speed in Mbps, or V(auto).
-          - When omitted, V(auto) is sent.
+          - When omitted, V(auto) is sent. Set to V(null) to send C(no speed).
         type: str
         choices: ["10", "100", "1000", "2500", "10000", auto]
         default: auto
@@ -82,7 +82,7 @@ options:
       pvid:
         description:
           - Port VLAN ID for untagged traffic.
-          - When omitted, the PVID is left unchanged.
+          - When omitted, the switch default PVID is restored with C(no switchport pvid).
         type: int
       vlans_untagged:
         description: VLAN IDs the port carries untagged.

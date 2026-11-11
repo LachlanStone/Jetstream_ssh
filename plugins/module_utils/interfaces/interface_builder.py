@@ -80,15 +80,19 @@ def build_commands(iface):
         cmds.append("shutdown")
     elif enabled is True:
         cmds.append("no shutdown")
-
-    # A None value means the user did not set the option: leave the switch as-is.
+    # None clears an explicit speed and lets the port auto-negotiate.
     speed = iface.get("speed")
     if speed is not None:
         cmds.append(f"speed {speed}")
+    else:
+        cmds.append("no speed")
 
+    # None clears the PVID; the switch falls back to its default PVID.
     pvid = iface.get("pvid")
     if pvid is not None:
         cmds.append(f"switchport pvid {pvid}")
+    else:
+        cmds.append("no switchport pvid")
 
     vlans_untagged = iface.get("vlans_untagged") or []
     if vlans_untagged:

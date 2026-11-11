@@ -150,9 +150,9 @@ python3 -c "import ast, pathlib; ast.parse(pathlib.Path('plugins/modules/jetstre
 |---|---|---|---|---|
 | `name` | `name` | str | — required | port ID portion of `interface <port-type> X/Y/Z` |
 | `port_type` | `port_type` | str | `"two-gigabitEthernet"` | interface prefix: `gigabitEthernet` / `two-gigabitEthernet` / `ten-gigabitEthernet` / `fastEthernet` |
-| `speed` | `speed` | str | `"auto"` | `speed <value>` — choices: `10`, `100`, `1000`, `2500`, `10000`, `auto` |
+| `speed` | `speed` | str | `"auto"` | `speed <value>` — choices: `10`, `100`, `1000`, `2500`, `10000`, `auto`; `no speed` when explicitly `None` |
 | `enabled` | `enabled` | bool | `None` (omitted) | `no shutdown` when `True`, `shutdown` when `False`, nothing when omitted |
-| `pvid` | `pvid` | int | `None` (omitted) | `switchport pvid <N>` |
+| `pvid` | `pvid` | int | `None` (omitted) | `switchport pvid <N>`, `no switchport pvid` when omitted |
 | `vlans_untagged` | `vlans_untagged` | list[int] | `[]` | `switchport general allowed vlan <N,...> untagged` |
 | `vlans_tagged` | `vlans_tagged` | list[int] | `[]` | `switchport general allowed vlan <N,...> tagged` |
 | `acceptable_frame_type` | `acceptable_frame_type` | str | `"all"` | `switchport general acceptable-frame-type tagged-only` (skipped when `"all"`) |
@@ -181,10 +181,10 @@ Omitting `port_type` defaults to `two-gigabitEthernet`, which matches the ports 
 ## Invariants — never break these
 
 - `build_commands` has no side effects. Same input → same output, always.
-- A field whose default is `None` must not emit a CLI command when omitted.
-  The switch is already in that state; pushing it again wastes a round-trip and
-  makes diffs noisy. `speed` is the exception: its default is `auto`, so it
-  intentionally sends `speed auto` on every run.
+- `None` means clear for `speed` and `pvid` (`no speed`, `no switchport pvid`).
+  For `enabled` and `description`, `None` means leave unchanged; use
+  `description: ""` to clear a description. `speed` defaults to `auto`, so it
+  normally sends `speed auto` on every run.
 - `exit` is always the last command in the returned list. The switch context
   must be back at global config before the next interface block starts.
 - `description` is always the last substantive command, before `exit`.
