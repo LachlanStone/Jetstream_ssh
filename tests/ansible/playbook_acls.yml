@@ -267,12 +267,12 @@
     #         vlans_untagged, vlans_tagged, vlans_disabled, acceptable_frame_type
     # =========================================================================
 
-    - name: "[interfaces] Configure gigabitEthernet access port"
+    - name: "[interfaces] Configure two-gigabitEthernet access port"
       lachlanstone.jetstream.jetstream_interfaces:
         <<: *conn
         interfaces:
           - name: "1/0/1"
-            port_type: gigabitEthernet
+            port_type: two-gigabitEthernet
             speed: "1000"
             enabled: true
             description: "Uplink to core"
@@ -284,7 +284,7 @@
       ignore_errors: true
       tags: [jetstream_interfaces, iface_gige, never]
 
-    - name: "[interfaces] Assert gigabitEthernet port config succeeded"
+    - name: "[interfaces] Assert two-gigabitEthernet port config succeeded"
       ansible.builtin.assert:
         that: iface_gige_result is not failed
         fail_msg: "iface gige failed: {{ iface_gige_result.msg | default('no msg') }}"
@@ -295,7 +295,7 @@
         <<: *conn
         interfaces:
           - name: "1/0/2"
-            port_type: gigabitEthernet
+            port_type: two-gigabitEthernet
             acceptable_frame_type: tagged
             vlans_tagged: [20, 30]
             vlans_disabled: [40]
@@ -314,7 +314,7 @@
         <<: *conn
         interfaces:
           - name: "1/0/3"
-            port_type: gigabitEthernet
+            port_type: two-gigabitEthernet
             enabled: false
       register: iface_disabled_result
       ignore_errors: true
@@ -331,7 +331,7 @@
         <<: *conn
         interfaces:
           - name: "1/0/4"
-            port_type: gigabitEthernet
+            port_type: two-gigabitEthernet
             speed: auto
       register: iface_auto_result
       ignore_errors: true
@@ -348,13 +348,13 @@
         <<: *conn
         interfaces:
           - name: "1/0/5"
-            port_type: gigabitEthernet
+            port_type: two-gigabitEthernet
             speed: "100"
             enabled: true
             pvid: 20
             vlans_untagged: [20]
           - name: "1/0/6"
-            port_type: gigabitEthernet
+            port_type: two-gigabitEthernet
             speed: "10"
             enabled: false
             description: "Unused"
