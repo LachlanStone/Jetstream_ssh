@@ -1,13 +1,17 @@
 # Changelog
 
-## 1.1.0
-
+## 1.0.3
+- Set all jetstream_manage_* toggles to false by default, so features only run when explicitly enabled.
+- Clear sample system, user, VLAN, and interface values from role defaults; add a complete example playbook under extras/.
+- Skip system configuration when all system settings are empty.
 - `jetstream_interfaces`: an omitted `description` is now left unchanged, while `description: ""` clears it. A `speed` of `null` sends `no speed`, and an omitted `pvid` sends `no switchport pvid`.
 - `jetstream_interfaces`: change the defaults to `port_type: two-gigabitEthernet` and `speed: auto`.
 - Fix `jetstream_acls` sending `logging enable` when the rule asked for `logging: disable`.
 - Reject a rule that sets both `protocol` and `protocol_name` instead of emitting two `protocol` tokens.
 - Exclude `.envrc` and `tests/` from the Galaxy artifact, and remove literal test passwords from the test fixtures.
 - Move the example playbook to `extras/jetstream_switch_example.yml`, where the role README already points.
+
+## 1.0.2
 - Add `jetstream_vlans` module for creating VLANs with optional names and static or DHCP SVIs.
 - Add prompt-based CLI mode detection so modules verify they are in global, VLAN, or interface config mode before sending commands.
 - Fix `send_command` resending commands that legitimately return no output, which caused duplicate commands and `Error: Bad command` on the switch.
