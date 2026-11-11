@@ -2,8 +2,12 @@ import unittest
 import unittest.mock as mock
 
 from plugins.module_utils.collector import ResultCollector
-from plugins.module_utils.interfaces.interface_builder import build_commands, _port_name
-from plugins.modules.jetstream_interfaces import configure_interface
+from plugins.module_utils.interfaces.interface_builder import (
+    build_commands,
+    _port_name,
+    validate_vlans,
+)
+from plugins.modules.jetstream_interfaces import configure_interface, run_module
 
 
 class TestJetstreamInterfaces(unittest.TestCase):
@@ -71,6 +75,44 @@ class TestJetstreamInterfaces(unittest.TestCase):
         step = collector._steps[-1]
         self.assertTrue(step["changed"])
         self.assertIn("interface gigabitEthernet 1/0/1", step["commands"])
+
+    def test_validate_vlans_accepts_distinct_vlans(self):
+        validate_vlans({
+            "name": "1/0/1",
+            "vlans_untagged": [10],
+            "vlans_tagged": [20, 30],
+            "vlans_disabled": [40],
+        })
+        validate_vlans({"name": "1/0/1"})
+
+    def test_validate_vlans_rejects_tagged_and_untagged(self):
+        iface = {"name": "1/0/1", "vlans_untagged": [10], "vlans_tagged": [10, 20]}
+        with self.assertRaises(ValueError) as ctx:
+            validate_vlans(iface)
+        self.assertIn("1/0/1", str(ctx.exception))
+        self.assertIn("[10]", str(ctx.exception))
+
+    def test_validate_vlans_rejects_disabled_overlap(self):
+        with self.assertRaises(ValueError):
+            validate_vlans({"name": "1/0/1", "vlans_tagged": [20], "vlans_disabled": [20]})
+
+    def test_validate_vlans_rejects_duplicate_within_list(self):
+        with self.assertRaises(ValueError):
+            validate_vlans({"name": "1/0/1", "vlans_tagged": [20, 20]})
+
+    def test_run_module_fails_before_connecting(self):
+        module = mock.MagicMock()
+        module.params = {
+            "host": "192.0.2.10",
+            "interfaces": [
+                {"name": "1/0/1", "vlans_untagged": [10], "vlans_tagged": [10]},
+            ],
+        }
+        with mock.patch("plugins.modules.jetstream_interfaces.build_device", return_value={}), \
+                mock.patch("plugins.modules.jetstream_interfaces.ConnectHandler") as connect:
+            with self.assertRaises(ValueError):
+                run_module(module)
+        connect.assert_not_called()
 
 
 if __name__ == "__main__":

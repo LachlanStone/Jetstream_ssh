@@ -50,6 +50,29 @@ def _port_name(port_id, port_type=None):
     return f"{_PORT_TYPE_CLI[key]} {port_id}"
 
 
+def validate_vlans(iface):
+    """Reject VLAN IDs listed more than once across the VLAN lists.
+
+    Covers ``vlans_untagged``, ``vlans_tagged`` and ``vlans_disabled``,
+    both within one list and between lists.
+
+    Raises:
+        ValueError: Naming the interface and each conflicting VLAN ID.
+    """
+    seen = {}
+    dupes = set()
+    for key in ("vlans_untagged", "vlans_tagged", "vlans_disabled"):
+        for vlan in iface.get(key) or []:
+            if vlan in seen:
+                dupes.add(vlan)
+            seen[vlan] = key
+    if dupes:
+        raise ValueError(
+            f"Interface {iface['name']}: VLAN(s) {sorted(dupes)} are listed more "
+            "than once across vlans_untagged, vlans_tagged and vlans_disabled."
+        )
+
+
 def build_commands(iface):
     """Return an ordered list of CLI commands for one interface entry.
 
