@@ -1,4 +1,5 @@
 import unittest
+from unittest.mock import Mock, patch
 
 from plugins.module_utils.collector import ResultCollector
 from plugins.modules.jetstream_system import (
@@ -6,10 +7,30 @@ from plugins.modules.jetstream_system import (
     configure_dns,
     configure_ntp,
     configure_lldp,
+    run_module,
 )
 
 
 class TestJetstreamSystem(unittest.TestCase):
+    def test_run_module_handles_omitted_system_block(self):
+        module = Mock()
+        module.params = {
+            "host": "192.0.2.10",
+            "port": 22,
+            "username": "admin",
+            "password": "",
+            "enable_password": "",
+            "read_timeout": 30,
+            "system": None,
+        }
+        module.check_mode = True
+        module._verbosity = 0
+
+        with patch("plugins.modules.jetstream_system.ConnectHandler"):
+            run_module(module)
+
+        module.exit_json.assert_called_once()
+
     def test_set_general_information_check_mode(self):
         collector = ResultCollector()
         collector.set_basic_info(switch="192.0.2.10", check_mode=True, verbosity=4)

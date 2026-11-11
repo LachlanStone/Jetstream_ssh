@@ -1,0 +1,9 @@
+- name: Base switch setup with the lachlanstone.jetstream collection
+  hosts: prod-switch-01
+  gather_facts: false
+  order: inventory
+  serial: 1
+  tasks:
+    - name: Configure the switch (system, users, VLANs, interfaces, ACLs, commands, save)
+      ansible.builtin.include_role:
+        name: lachlanstone.jetstream.jetstream_switch

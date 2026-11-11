@@ -4,3 +4,8 @@ ssh_username: admin
 ssh_password: password
 ssh_enable_password: password
 ssh_command_level: enable
+
+jetstream_host: "{{ switch_host }}"
+jetstream_username: "{{ ssh_username }}"
+jetstream_password: "{{ ssh_password }}"
+jetstream_enable_password: "{{ ssh_enable_password }}"
