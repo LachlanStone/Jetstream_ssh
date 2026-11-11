@@ -11,6 +11,7 @@ class ResultCollector:
         self.check_mode=False
         self.changed = False
         self.msg = ""
+        self.name = ""
         self.stdout = ""           # Feature 1: Raw stdout from all commands
         self.stdout_lines = []     # Feature 1: Lines split for Ansible display
         self.parsed = {}           # Feature 2: Parsed output per command
