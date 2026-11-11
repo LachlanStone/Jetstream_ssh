@@ -582,6 +582,14 @@ def bind_acls(net_connect, collector, module, acl):
     return collector.return_info()
 
 
+def validate_acl_rules(acl):
+    for rule in acl.rules:
+        if rule.protocol is not None and rule.protocol_name is not None:
+            raise ValueError(
+                f"ACL {acl.id} rule {rule.seq}: protocol and protocol_name are mutually exclusive."
+            )
+
+
 def run_modules(module):
     logger.info(f"State set = {module.params['state']}")
     device = build_device(module)
@@ -595,6 +603,7 @@ def run_modules(module):
         acl: ACL = ACL.from_dict(
             acl=requested_acls, bound_acls=bound_acls, current_acls=current_acls
         )
+        validate_acl_rules(acl=acl)
         collector = ResultCollector()  # Initialize the ResultCollector
         collector.set_basic_info(
             switch=module.params["host"],
@@ -714,7 +723,6 @@ def main():
                 },
             },
         },
-        mutually_exclusive=[["protocol", "protocol_name"]],
         supports_check_mode=True,
     )
     try:
