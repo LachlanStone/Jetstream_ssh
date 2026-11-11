@@ -1,6 +1,7 @@
 # Changelog
 
 ## 1.0.3
+- Removed the 5 second sleep from `jetstream_acls` module when configuring ACL rules.
 - Set all jetstream_manage_* toggles to false by default, so features only run when explicitly enabled.
 - Clear sample system, user, VLAN, and interface values from role defaults; add a complete example playbook under extras/.
 - Skip system configuration when all system settings are empty.

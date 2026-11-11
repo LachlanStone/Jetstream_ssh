@@ -496,7 +496,6 @@ def create_and_update_acl_rules(net_connect, collector, module, acl, current_acl
                 send_command(net_connect, cmd=cmd)
                 rule_commands_ran_list.append(cmd)
                 logger.info(f"Rule {seq} for ACL {acl.id} has been configured.")
-                time.sleep(5)
             else:
                 rule_commands_ran_list.append(cmd)
                 logger.info(f"Rule {seq} for ACL {acl.id} would be configured.")
