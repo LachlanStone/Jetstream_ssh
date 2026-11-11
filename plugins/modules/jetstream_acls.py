@@ -191,7 +191,6 @@ acl_info:
 from ansible.module_utils.basic import AnsibleModule
 from ansible.module_utils.common import json
 from netmiko import ConnectHandler, log
-import logging
 import time
 
 
@@ -215,23 +214,10 @@ from ansible_collections.lachlanstone.jetstream.plugins.module_utils.collector i
 from ansible_collections.lachlanstone.jetstream.plugins.module_utils.device import (
     build_device,
 )
+from ansible_collections.lachlanstone.jetstream.plugins.module_utils.logging import (
+    logger,
+)
 
-# NOTE: acl this variable to True will enable console logging for debugging purposes. Set to False to disable console logging.
-logging_enabled = True  # Set to True to enable console logging, False to disable
-
-# Component: Configure logging for Netmiko
-logger = logging.getLogger(name="netmiko")
-logger.setLevel(level=logging.DEBUG)
-logger.propagate = False
-formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-# Component: StreamHandler (logger.info debug messages to console)
-# Only attach handlers once; importing this module alongside jetstream_interfaces
-# shares the same "netmiko" logger, so guard against duplicate handlers.
-if logging_enabled and not logger.handlers:
-    stream_handler = logging.StreamHandler()
-    stream_handler.setLevel(level=logging.INFO)
-    stream_handler.setFormatter(fmt=formatter)
-    logger.addHandler(hdlr=stream_handler)
 
 
 def unbind_acl(net_connect, collector, module, acl):

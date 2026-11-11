@@ -111,6 +111,9 @@ from netmiko import ConnectHandler
 from ansible_collections.lachlanstone.jetstream.plugins.module_utils.device import (
     build_device,
 )
+from ansible_collections.lachlanstone.jetstream.plugins.module_utils.logging import (
+    logger,
+)
 
 def parse_output(output):
     parsed = {}

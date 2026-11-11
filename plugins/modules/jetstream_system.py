@@ -174,7 +174,6 @@ steps:
   elements: dict
 """
 
-import logging
 from ansible.module_utils.basic import AnsibleModule
 from netmiko import ConnectHandler
 
@@ -188,20 +187,11 @@ from ansible_collections.lachlanstone.jetstream.plugins.module_utils.collector i
 from ansible_collections.lachlanstone.jetstream.plugins.module_utils.device import (
     build_device,
 )
+from ansible_collections.lachlanstone.jetstream.plugins.module_utils.logging import (
+    logger,
+)
 
 
-# Component: Configure logging for Netmiko
-logger = logging.getLogger(name="netmiko")
-logger.setLevel(level=logging.DEBUG)
-logger.propagate = False
-formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-# Component: StreamHandler (logger.info debug messages to console)
-logging_enabled = True  # Set this to False to disable console logging
-if logging_enabled:
-    stream_handler = logging.StreamHandler()
-    stream_handler.setLevel(level=logging.INFO)
-    stream_handler.setFormatter(fmt=formatter)
-    logger.addHandler(hdlr=stream_handler)
 
 def read_system_info(net_connect):
     """Read current system info from the switch via ``show system-info``.
