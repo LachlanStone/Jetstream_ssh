@@ -34,6 +34,41 @@ class TestJetstreamInterfaces(unittest.TestCase):
         self.assertIn("switchport general allowed vlan 200,300 tagged", cmds)
         self.assertEqual(cmds[-1], "exit")
 
+    def test_omitted_options_are_left_unchanged(self):
+        # Shaped like Ansible output: every omitted suboption is present with None.
+        iface = {
+            "name": "1/0/1",
+            "port_type": "gigabitEthernet",
+            "speed": None,
+            "enabled": True,
+            "description": None,
+            "pvid": None,
+            "vlans_untagged": [],
+            "vlans_tagged": [],
+            "vlans_disabled": [],
+            "acceptable_frame_type": "all",
+        }
+        cmds = build_commands(iface)
+        self.assertEqual(
+            cmds,
+            [
+                "interface gigabitEthernet 1/0/1",
+                "no shutdown",
+                "exit",
+            ],
+        )
+        self.assertNotIn("no speed", cmds)
+        self.assertNotIn("no switchport pvid", cmds)
+        self.assertNotIn("no description", cmds)
+
+    def test_empty_description_clears_it(self):
+        cmds = build_commands({"name": "1/0/1", "description": ""})
+        self.assertIn("no description", cmds)
+
+    def test_speed_auto_is_sent(self):
+        cmds = build_commands({"name": "1/0/1", "speed": "auto"})
+        self.assertIn("speed auto", cmds)
+
     def test_configure_interface_check_mode(self):
         collector = ResultCollector()
         collector.set_basic_info(switch="192.0.2.10", check_mode=True)
