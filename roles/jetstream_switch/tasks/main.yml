@@ -10,7 +10,12 @@
     dns: "{{ jetstream_dns | default(omit) }}"
     ntp: "{{ jetstream_ntp | default(omit) }}"
   args: "{{ jetstream_connection_defaults }}"
-  when: jetstream_manage_system
+  when:
+    - jetstream_manage_system
+    - (jetstream_system | default({}) | length > 0) or
+      (jetstream_lldp | default({}) | length > 0) or
+      (jetstream_dns | default({}) | length > 0) or
+      (jetstream_ntp | default({}) | length > 0)
 
 - name: Users - local accounts
   lachlanstone.jetstream.jetstream_user:

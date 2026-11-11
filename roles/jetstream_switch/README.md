@@ -56,10 +56,19 @@ jetstream_username: ops
 jetstream_password: "{{ vault_switch_password }}"
 jetstream_enable_password: "{{ vault_switch_enable_password }}"
 
+# Enable features to configure:
+jetstream_manage_system: true
+jetstream_manage_users: true
+jetstream_manage_vlans: true
+jetstream_manage_interfaces: true
+jetstream_manage_acls: true
+
 jetstream_system:
   hostname: sw-access-01
   location: "Bldg 1, IDC1"
   contact: "noc@example.com"
+jetstream_lldp:
+  enabled: true
 jetstream_dns:
   primary: 10.0.0.1
   secondary: 10.0.0.2

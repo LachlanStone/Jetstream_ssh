@@ -1,9 +1,107 @@
-- name: Base switch setup with the lachlanstone.jetstream collection
-  hosts: prod-switch-01
+---
+# Example playbook demonstrating how to use the jetstream_switch role
+# with full configuration examples (system, users, VLANs, interfaces, ACLs, commands).
+
+- name: Configure TP-Link JetStream switch
+  hosts: tp_link_jetstream
   gather_facts: false
-  order: inventory
-  serial: 1
+  vars:
+    # Connection settings
+    jetstream_host: "{{ inventory_hostname }}"
+    jetstream_port: 22
+    jetstream_username: admin
+    jetstream_password: "{{ vault_switch_password | default('secret') }}"
+    jetstream_enable_password: "{{ vault_switch_enable_password | default('secret') }}"
+
+    # Feature toggles - enable desired features
+    jetstream_manage_system: true
+    jetstream_manage_users: true
+    jetstream_manage_vlans: true
+    jetstream_manage_interfaces: true
+    jetstream_manage_acls: true
+    jetstream_save_config: true
+    jetstream_save_when: on-change
+
+    # System configuration
+    jetstream_system:
+      hostname: sw-access-01
+      location: "Bldg 1, Server Room"
+      contact: "noc@example.com"
+
+    jetstream_lldp:
+      enabled: true
+
+    jetstream_dns:
+      primary: 8.8.8.8
+      secondary: 8.8.4.4
+
+    jetstream_ntp:
+      type: ntp
+      ntp_utc: "+00:00"
+      ntp_servers:
+        - 10.10.30.10
+        - 10.10.30.11
+      ntp_fetch_time: 30
+
+    # User management
+    jetstream_users:
+      - name: admin
+        privilege: admin
+        password_type: password
+        encryption_type: 0
+        password: "{{ vault_admin_password | default('admin_password') }}"
+        state: present
+        update_password: on_create
+
+    # VLANs and SVIs
+    jetstream_vlans:
+      - vlan_id: 110
+        name: VLAN110
+        ip_address: 10.110.0.1
+        subnet_mask: 255.255.255.0
+      - vlan_id: 3901
+        name: VLAN3901
+        ip_address: 172.31.91.1
+        subnet_mask: 255.255.255.0
+
+    # Interfaces
+    # Tw ports are two-gigabitEthernet (1/0/1-24), Te ports are ten-gigabitEthernet (1/0/25-28).
+    jetstream_interfaces:
+      - name: 1/0/1
+        port_type: two-gigabitEthernet
+        enabled: true
+        pvid: 1
+        acceptable_frame_type: all
+        vlans_tagged: [110]
+      - name: 1/0/28
+        port_type: ten-gigabitEthernet
+        enabled: true
+        description: "Trunk uplink to core switch"
+        pvid: 1
+        acceptable_frame_type: tagged
+        vlans_tagged: [110, 3901]
+        vlans_untagged: [10]
+
+    # ACLs
+    jetstream_acls_state: present
+    jetstream_acls:
+      - id: "1001"
+        name: ALLOW_PRINT
+        vid: 20
+        rule_type: combined
+        rules:
+          - seq: 10
+            action: permit
+            protocol_name: TCP
+            dport: 9100
+            sip: 10.20.0.0
+            sip_mask: 255.255.255.0
+
+    # Ad-hoc commands
+    jetstream_command_level: config
+    jetstream_commands: []
+
   tasks:
-    - name: Configure the switch (system, users, VLANs, interfaces, ACLs, commands, save)
+    - name: Apply JetStream switch configuration role
       ansible.builtin.include_role:
         name: lachlanstone.jetstream.jetstream_switch
