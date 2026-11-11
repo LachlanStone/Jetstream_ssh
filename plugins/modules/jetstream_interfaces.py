@@ -305,7 +305,7 @@ def main():
                     "port_type": {
                         "type": "str",
                         "required": False,
-                        "default": "gigabitEthernet",
+                        "default": "two-gigabitEthernet",
                         "choices": [
                             "gigabitEthernet",
                             "two-gigabitEthernet",
@@ -316,7 +316,7 @@ def main():
                     "speed": {
                         "type": "str",
                         "required": False,
-                        "default": None,
+                        "default": "auto",
                         "choices": ["10", "100", "1000", "2500", "10000", "auto"],
                     },
                     "enabled": {
