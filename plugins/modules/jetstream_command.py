@@ -6,6 +6,20 @@ from __future__ import absolute_import, division, print_function
 
 __metaclass__ = type
 
+from ansible.module_utils.basic import AnsibleModule
+from netmiko import ConnectHandler
+from netmiko.utilities import structured_data_converter
+from ansible_collections.lachlanstone.jetstream.plugins.module_utils.device import (
+    build_device,
+)
+from ansible_collections.lachlanstone.jetstream.plugins.module_utils.logging import (
+    logger,
+)
+from ansible_collections.lachlanstone.jetstream.plugins.module_utils.connection import (
+    CONNECTION_ARGS,
+    CONNECTION_DOCUMENTATION,
+)
+
 DOCUMENTATION = r"""
 ---
 module: jetstream_command
@@ -22,31 +36,7 @@ author:
 requirements:
   - netmiko
 options:
-  host:
-    description: Hostname or IP address of the switch.
-    type: str
-    required: true
-  port:
-    description: SSH port of the switch.
-    type: int
-    default: 22
-  username:
-    description: SSH username.
-    type: str
-    required: true
-  password:
-    description: SSH password.
-    type: str
-    default: ""
-  enable_password:
-    description: Password for privileged (enable) mode.
-    type: str
-    default: ""
-  read_timeout:
-    description:
-      - Seconds Netmiko waits for the command prompt before raising a read timeout.
-      - Defaults to C(JETSTREAM_READ_TIMEOUT) when set, otherwise 30.
-    type: float
+""" + CONNECTION_DOCUMENTATION + r"""
   command_level:
     description:
       - CLI mode to run the commands in.
@@ -105,15 +95,6 @@ commands:
       returned: when at least one line matched
 """
 
-from ansible.module_utils.basic import AnsibleModule
-from netmiko import ConnectHandler
-from netmiko.utilities import structured_data_converter
-from ansible_collections.lachlanstone.jetstream.plugins.module_utils.device import (
-    build_device,
-)
-from ansible_collections.lachlanstone.jetstream.plugins.module_utils.logging import (
-    logger,
-)
 
 def parse_output(output):
     parsed = {}
@@ -152,23 +133,18 @@ def send_commands(params):
 
 
 def main():
-    module = AnsibleModule(
-        argument_spec={
-            "host": {"type": "str", "required": True},
-            "port": {"type": "int", "default": 22},
-            "username": {"type": "str", "required": True},
-            "password": {"type": "str", "no_log": True, "default": ""},
-            "enable_password": {"type": "str", "no_log": True, "default": ""},
-            "read_timeout": {"type": "float", "required": False},
+    argument_spec = {}
+    argument_spec.update(CONNECTION_ARGS)
+    argument_spec.update(
+        {
             "command_level": {"type": "str", "choices": ["cli", "enable", "config"], "default": "cli"},
             "command": {"type": "str", "required": False},
             "commands": {"type": "list", "elements": "str", "required": False},
-        },
-        supports_check_mode=False,
+        }
     )
-
-    if module.check_mode:
-        module.exit_json(changed=False, msg="Check mode - no commands executed")
+    module = AnsibleModule(
+        argument_spec=argument_spec,
+    )
 
     try:
         results = send_commands(module.params)

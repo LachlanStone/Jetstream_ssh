@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+- Consolidated the duplicated connection argument spec (`host`, `port`, `username`, `password`, `enable_password`, `read_timeout`) into `plugins/module_utils/connection.py` along with a shared `CONNECTION_DOCUMENTATION` fragment; all seven modules now compose from one source so connection options stay in sync.
+- Removed the dead check-mode branch from `jetstream_command` (`supports_check_mode=False` made it unreachable).
+- Removed the unreachable `hasattr(save_config)` fallback from `jetstream_save`; Netmiko always provides `save_config`, so it is called directly.
+
 ## 1.0.3
 - Removed the 5 second sleep from `jetstream_acls` module when configuring ACL rules.
 - Set all jetstream_manage_* toggles to false by default, so features only run when explicitly enabled.

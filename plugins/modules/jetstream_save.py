@@ -6,6 +6,23 @@ from __future__ import absolute_import, division, print_function
 
 __metaclass__ = type
 
+from ansible.module_utils.basic import AnsibleModule
+from netmiko import ConnectHandler
+
+from ansible_collections.lachlanstone.jetstream.plugins.module_utils.collector import (
+    ResultCollector,
+)
+from ansible_collections.lachlanstone.jetstream.plugins.module_utils.device import (
+    build_device,
+)
+from ansible_collections.lachlanstone.jetstream.plugins.module_utils.logging import (
+    logger,
+)
+from ansible_collections.lachlanstone.jetstream.plugins.module_utils.connection import (
+    CONNECTION_ARGS,
+    CONNECTION_DOCUMENTATION,
+)
+
 DOCUMENTATION = r"""
 ---
 module: jetstream_save
@@ -20,31 +37,7 @@ author:
 requirements:
   - netmiko
 options:
-  host:
-    description: Hostname or IP address of the switch.
-    type: str
-    required: true
-  port:
-    description: SSH port of the switch.
-    type: int
-    default: 22
-  username:
-    description: SSH username used to authenticate with the switch.
-    type: str
-    required: true
-  password:
-    description: SSH password used to authenticate with the switch.
-    type: str
-    default: ""
-  enable_password:
-    description: Password for privileged (enable) mode.
-    type: str
-    default: ""
-  read_timeout:
-    description:
-      - Seconds Netmiko waits for the command prompt before raising a read timeout.
-      - Defaults to C(JETSTREAM_READ_TIMEOUT) when set, otherwise 30.
-    type: float
+""" + CONNECTION_DOCUMENTATION + r"""
   command:
     description:
       - The specific CLI command used to persist the running configuration.
@@ -104,22 +97,6 @@ steps:
   elements: dict
 """
 
-from ansible.module_utils.basic import AnsibleModule
-from netmiko import ConnectHandler
-
-from ansible_collections.lachlanstone.jetstream.plugins.module_utils.send_command import (
-    send_command,
-)
-from ansible_collections.lachlanstone.jetstream.plugins.module_utils.collector import (
-    ResultCollector,
-)
-from ansible_collections.lachlanstone.jetstream.plugins.module_utils.device import (
-    build_device,
-)
-from ansible_collections.lachlanstone.jetstream.plugins.module_utils.logging import (
-    logger,
-)
-
 
 
 def save_configuration(net_connect, cmd, collector, check_mode=False):
@@ -131,10 +108,7 @@ def save_configuration(net_connect, cmd, collector, check_mode=False):
         output = ""
     else:
         logger.info("Executing save command: %s", cmd)
-        if hasattr(net_connect, "save_config"):
-            output = net_connect.save_config(cmd=cmd)
-        else:
-            output = send_command(net_connect, cmd=cmd)
+        output = net_connect.save_config(cmd=cmd)
 
     collector.add_step(
         name="save_config",
@@ -186,14 +160,10 @@ def run_module(module):
 
 def main():
     """Ansible module argument specification and entry point."""
-    module = AnsibleModule(
-        argument_spec={
-            "host": {"type": "str", "required": True},
-            "port": {"type": "int", "default": 22},
-            "username": {"type": "str", "required": True},
-            "password": {"type": "str", "no_log": True, "default": ""},
-            "enable_password": {"type": "str", "no_log": True, "default": ""},
-            "read_timeout": {"type": "float", "required": False},
+    argument_spec = {}
+    argument_spec.update(CONNECTION_ARGS)
+    argument_spec.update(
+        {
             "command": {
                 "type": "str",
                 "required": False,
@@ -201,6 +171,9 @@ def main():
                 "choices": ["copy running-config startup-config", "write"],
             },
         },
+    )
+    module = AnsibleModule(
+        argument_spec=argument_spec,
         supports_check_mode=True,
     )
 

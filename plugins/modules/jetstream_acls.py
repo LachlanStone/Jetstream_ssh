@@ -6,6 +6,39 @@ from __future__ import absolute_import, division, print_function
 
 __metaclass__ = type
 
+from ansible.module_utils.basic import AnsibleModule
+from ansible.module_utils.common import json
+from netmiko import ConnectHandler, log
+import time
+
+from ansible_collections.lachlanstone.jetstream.plugins.module_utils.send_command import (
+    send_command,
+)
+
+from ansible_collections.lachlanstone.jetstream.plugins.module_utils.acls.acls_parsers import (
+    get_current_acls,
+    get_bound_access_lists,
+    get_protocol_number,
+    protocol_names,
+)
+from ansible_collections.lachlanstone.jetstream.plugins.module_utils.acls.acl_classes import (
+    ACL,
+)
+
+from ansible_collections.lachlanstone.jetstream.plugins.module_utils.collector import (
+    ResultCollector,
+)  # Import the ResultCollector class from the results_collector module
+from ansible_collections.lachlanstone.jetstream.plugins.module_utils.device import (
+    build_device,
+)
+from ansible_collections.lachlanstone.jetstream.plugins.module_utils.logging import (
+    logger,
+)
+from ansible_collections.lachlanstone.jetstream.plugins.module_utils.connection import (
+    CONNECTION_ARGS,
+    CONNECTION_DOCUMENTATION,
+)
+
 DOCUMENTATION = r"""
 ---
 module: jetstream_acls
@@ -21,31 +54,7 @@ author:
 requirements:
   - netmiko
 options:
-  host:
-    description: Hostname or IP address of the switch.
-    type: str
-    required: true
-  port:
-    description: SSH port of the switch.
-    type: int
-    default: 22
-  username:
-    description: SSH username.
-    type: str
-    required: true
-  password:
-    description: SSH password.
-    type: str
-    default: ""
-  enable_password:
-    description: Password for privileged (enable) mode.
-    type: str
-    default: ""
-  read_timeout:
-    description:
-      - Seconds Netmiko waits for the command prompt before raising a read timeout.
-      - Defaults to C(JETSTREAM_READ_TIMEOUT) when set, otherwise 30.
-    type: float
+""" + CONNECTION_DOCUMENTATION + r"""
   state:
     description:
       - V(present) creates the ACL and rules if missing and binds it.
@@ -187,37 +196,6 @@ acl_info:
   returned: when ACL information was collected and verbosity is 2 or higher
   type: dict
 """
-
-from ansible.module_utils.basic import AnsibleModule
-from ansible.module_utils.common import json
-from netmiko import ConnectHandler, log
-import time
-
-
-from ansible_collections.lachlanstone.jetstream.plugins.module_utils.send_command import (
-    send_command,
-)
-
-from ansible_collections.lachlanstone.jetstream.plugins.module_utils.acls.acls_parsers import (
-    get_current_acls,
-    get_bound_access_lists,
-    get_protocol_number,
-    protocol_names,
-)
-from ansible_collections.lachlanstone.jetstream.plugins.module_utils.acls.acl_classes import (
-    ACL,
-)
-
-from ansible_collections.lachlanstone.jetstream.plugins.module_utils.collector import (
-    ResultCollector,
-)  # Import the ResultCollector class from the results_collector module
-from ansible_collections.lachlanstone.jetstream.plugins.module_utils.device import (
-    build_device,
-)
-from ansible_collections.lachlanstone.jetstream.plugins.module_utils.logging import (
-    logger,
-)
-
 
 
 def unbind_acl(net_connect, collector, module, acl):
@@ -651,14 +629,10 @@ def run_modules(module):
 
 
 def main():
-    module = AnsibleModule(
-        argument_spec={
-            "host": {"type": "str", "required": True},
-            "port": {"type": "int", "default": 22},
-            "username": {"type": "str", "required": True},
-            "password": {"type": "str", "no_log": True, "default": ""},
-            "enable_password": {"type": "str", "no_log": True, "default": ""},
-            "read_timeout": {"type": "float", "required": False},
+    argument_spec = {}
+    argument_spec.update(CONNECTION_ARGS)
+    argument_spec.update(
+        {
             "state": {
                 "type": "str",
                 "choices": ["present", "absent", "unbind", "update"],
@@ -709,6 +683,9 @@ def main():
                 },
             },
         },
+    )
+    module = AnsibleModule(
+        argument_spec=argument_spec,
         supports_check_mode=True,
     )
     try:
