@@ -161,6 +161,7 @@ from ansible_collections.lachlanstone.jetstream.plugins.module_utils.config_mode
 )
 from ansible_collections.lachlanstone.jetstream.plugins.module_utils.interfaces.interface_builder import (
     build_commands,
+    validate_vlans,
 )
 from ansible_collections.lachlanstone.jetstream.plugins.module_utils.device import (
     build_device,
@@ -271,6 +272,9 @@ def run_module(module):
     )
 
     interfaces = module.params.get("interfaces") or []
+    for iface in interfaces:
+        validate_vlans(iface)
+
 
     with ConnectHandler(**device) as net_connect:
         net_connect.enable()
