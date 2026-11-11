@@ -9,3 +9,5 @@ jetstream_host: "{{ switch_host }}"
 jetstream_username: "{{ ssh_username }}"
 jetstream_password: "{{ ssh_password }}"
 jetstream_enable_password: "{{ ssh_enable_password }}"
+
+jetstream_test_user_password: "CHANGEME"
