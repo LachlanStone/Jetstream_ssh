@@ -260,7 +260,7 @@ class TestConfigureInterface(unittest.TestCase):
             step["commands"],
             [
                 "interface two-gigabitEthernet 1/0/1",
-                "switchport general acceptable-frame-type all",
+                "no switchport general acceptable-frame-type tagged-only",
                 "exit",
             ],
         )

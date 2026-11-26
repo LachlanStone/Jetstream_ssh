@@ -34,6 +34,18 @@ class TestJetstreamInterfaces(unittest.TestCase):
         self.assertIn("switchport general allowed vlan 200,300 tagged", cmds)
         self.assertEqual(cmds[-1], "exit")
 
+    def test_build_commands_acceptable_frame_type(self):
+        tagged = build_commands({"name": "1/0/1", "acceptable_frame_type": "tagged"})
+        self.assertIn("switchport general acceptable-frame-type tagged-only", tagged)
+
+        all_frames = build_commands({"name": "1/0/1", "acceptable_frame_type": "all"})
+        self.assertIn("no switchport general acceptable-frame-type tagged-only", all_frames)
+
+        omitted = build_commands({"name": "1/0/1"})
+        self.assertTrue(
+            all("acceptable-frame-type" not in c for c in omitted)
+        )
+
     def test_configure_interface_check_mode(self):
         collector = ResultCollector()
         collector.set_basic_info(switch="192.0.2.10", check_mode=True)

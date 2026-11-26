@@ -8,7 +8,7 @@ jetstream_username: admin
 jetstream_password: ""
 jetstream_enable_password: ""
 jetstream_read_timeout: 30
-jetstream_interfaces_batch_size: 5
+jetstream_interfaces_batch_size: 1
 
 
 jetstream_connection_defaults:
@@ -108,7 +108,7 @@ jetstream_interfaces:
     description: ""
     pvid: 1
     vlans_untagged: [421]
-    vlans_tagged: [110,420]
+    vlans_tagged: [110, 420]
     vlans_disabled: [69]
     acceptable_frame_type: all
   - name: 1/0/4

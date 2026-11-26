@@ -108,9 +108,13 @@ def build_commands(iface):
         vlan_str = ",".join(str(v) for v in vlans_disabled)
         cmds.append(f"no switchport general allowed vlan {vlan_str}")
 
-    acceptable_frame = iface.get("acceptable_frame_type") or "all"
-    if acceptable_frame != "all":
-        cmds.append(f"switchport general acceptable-frame-type tagged-only")
+    # ``all`` is the JetStream default; restore it with the negate form.
+    # ``tagged`` maps to tagged-only. Omit the key to leave the port untouched.
+    acceptable_frame = iface.get("acceptable_frame_type")
+    if acceptable_frame == "tagged":
+        cmds.append("switchport general acceptable-frame-type tagged-only")
+    elif acceptable_frame == "all":
+        cmds.append("no switchport general acceptable-frame-type tagged-only")
 
     description = iface.get("description")
     if description:

@@ -206,22 +206,6 @@ _CLI_ERROR = re.compile(
 )
 
 
-def _build_change_commands(delta):
-    """Build the CLI commands for one interface delta.
-
-    ``build_commands`` only knows how to express ``acceptable_frame_type`` as
-    ``tagged``; when the delta asks for ``all`` we insert the ``all`` form
-    explicitly before the final ``exit``.
-    """
-    cmds = build_commands(delta)
-    if delta.get("acceptable_frame_type") == "all":
-        exit_cmd = cmds.pop() if cmds and cmds[-1] == "exit" else None
-        cmds.append("switchport general acceptable-frame-type all")
-        if exit_cmd:
-            cmds.append(exit_cmd)
-    return cmds
-
-
 def configure_interface(net_connect, iface, config, running, collector, check_mode):
     """Push only the differing settings for one interface to the device.
 
@@ -256,7 +240,7 @@ def configure_interface(net_connect, iface, config, running, collector, check_mo
         )
         return
 
-    cmds = _build_change_commands(delta)
+    cmds = build_commands(delta)
 
     if check_mode:
         msg = f"Interface {name}: would apply {len(cmds)} command(s)."
