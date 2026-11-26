@@ -294,7 +294,7 @@
       lachlanstone.jetstream.jetstream_interfaces:
         <<: *conn
         interfaces:
-          - name: "1/0/2"
+          - name: "1/0/20"
             port_type: two-gigabitEthernet
             acceptable_frame_type: tagged
             vlans_tagged: [20, 30]

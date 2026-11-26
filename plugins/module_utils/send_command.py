@@ -5,6 +5,10 @@ import time
 
 from netmiko.exceptions import ReadTimeout
 
+from ansible_collections.lachlanstone.jetstream.plugins.module_utils.config_mode import (
+    get_prompt,
+)
+
 
 def send_command(
     net_connect,
@@ -50,12 +54,12 @@ def send_command(
         str: Command output with prompt and command echo stripped.
     """
 
-    escape_prompt = expect_string or re.escape(net_connect.find_prompt())
+    escape_prompt = expect_string or re.escape(get_prompt(net_connect))
     attempts = max(retries, 0) + 1
     mode_aware_active = attempts > 1 and mode_aware
     start_prompt = None
     if mode_aware_active:
-        start_prompt = net_connect.find_prompt().strip()
+        start_prompt = get_prompt(net_connect)
 
     for attempt in range(attempts):
         try:
@@ -77,7 +81,7 @@ def send_command(
                     # command could duplicate it in the wrong context.
                     raise
                 try:
-                    current_prompt = net_connect.find_prompt().strip()
+                    current_prompt = get_prompt(net_connect)
                 except Exception:
                     raise exc
 

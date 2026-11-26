@@ -1,6 +1,8 @@
 import unittest
 import unittest.mock as mock
 
+from netmiko.base_connection import BaseConnection
+
 from plugins.module_utils.config_mode import (
     ensure_global_config,
     get_config_mode,
@@ -26,6 +28,33 @@ class TestParseConfigMode(unittest.TestCase):
 
 
 class TestConnectionHelpers(unittest.TestCase):
+    def test_ensure_global_config_waits_for_fragmented_prompt(self):
+        class FragmentedConnection:
+            RETURN = "\n"
+            RESPONSE_RETURN = "\n"
+            read_timeout_override = None
+            _read_buffer = ""
+            find_prompt = BaseConnection.find_prompt
+            read_until_pattern = BaseConnection.read_until_pattern
+
+            def __init__(self):
+                self.chunks = iter(["switch(config", ")#"])
+
+            def select_delay_factor(self, delay_factor):
+                return delay_factor
+
+            def clear_buffer(self):
+                pass
+
+            def write_channel(self, data):
+                pass
+
+            def read_channel(self):
+                return next(self.chunks)
+
+        with mock.patch("netmiko.base_connection.time.sleep"):
+            self.assertEqual(ensure_global_config(FragmentedConnection()), "global")
+
     def test_is_in_config_interface(self):
         conn = mock.MagicMock()
         conn.find_prompt.return_value = "switch(config-if)#"

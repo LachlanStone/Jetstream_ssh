@@ -43,7 +43,7 @@ def parse_config_mode(prompt):
 
 def get_prompt(net_connect):
     """Return the current prompt, stripped."""
-    return net_connect.find_prompt().strip()
+    return net_connect.find_prompt(pattern=r"[^\r\n#>]+[>#]").strip()
 
 
 def get_config_mode(net_connect):

@@ -8,6 +8,8 @@ jetstream_username: admin
 jetstream_password: ""
 jetstream_enable_password: ""
 jetstream_read_timeout: 30
+jetstream_interfaces_batch_size: 5
+
 
 jetstream_connection_defaults:
   host: "{{ jetstream_host }}"
@@ -72,175 +74,293 @@ jetstream_vlans:
     subnet_mask: 255.255.255.0
 
 # ------------------------------------------------------------------
-# Interfaces (jetstream_interfaces) — all ports on the switch.
-# Tw ports are two-gigabitEthernet (1/0/1-24), Te ports are
-# ten-gigabitEthernet (1/0/25-28). All default to PVID 1, General
-# (acceptable_frame_type: all), enabled.
+# Interfaces (jetstream_interfaces_v2) — all ports on the switch.
+# Every entry declares the full desired state: speed, admin state,
+# description, PVID, tagged/untagged/disabled VLANs and acceptable
+# frame type. Tw ports are two-gigabitEthernet (1/0/1-24), Te ports
+# are ten-gigabitEthernet (1/0/25-28).
 # ------------------------------------------------------------------
 jetstream_interfaces:
   - name: 1/0/1
     port_type: two-gigabitEthernet
+    speed: auto
     enabled: true
+    description: ""
     pvid: 1
-    acceptable_frame_type: all
+    vlans_untagged: []
     vlans_tagged: [110]
+    vlans_disabled: []
+    acceptable_frame_type: all
   - name: 1/0/2
     port_type: two-gigabitEthernet
+    speed: auto
     enabled: true
+    description: ""
     pvid: 1
-    acceptable_frame_type: all
+    vlans_untagged: []
     vlans_tagged: [110]
+    vlans_disabled: []
+    acceptable_frame_type: all
   - name: 1/0/3
     port_type: two-gigabitEthernet
+    speed: auto
     enabled: true
+    description: ""
     pvid: 1
+    vlans_untagged: [421]
+    vlans_tagged: [110,420]
+    vlans_disabled: [69]
     acceptable_frame_type: all
-    vlans_tagged: [110]
   - name: 1/0/4
     port_type: two-gigabitEthernet
+    speed: auto
     enabled: true
+    description: ""
     pvid: 1
-    acceptable_frame_type: all
+    vlans_untagged: []
     vlans_tagged: [110]
+    vlans_disabled: []
+    acceptable_frame_type: all
   - name: 1/0/5
     port_type: two-gigabitEthernet
+    speed: auto
     enabled: true
+    description: ""
     pvid: 1
-    acceptable_frame_type: all
+    vlans_untagged: []
     vlans_tagged: [110]
+    vlans_disabled: []
+    acceptable_frame_type: all
   - name: 1/0/6
     port_type: two-gigabitEthernet
+    speed: auto
     enabled: true
+    description: ""
     pvid: 1
-    acceptable_frame_type: all
+    vlans_untagged: []
     vlans_tagged: [110]
+    vlans_disabled: []
+    acceptable_frame_type: all
   - name: 1/0/7
     port_type: two-gigabitEthernet
+    speed: auto
     enabled: true
+    description: ""
     pvid: 1
-    acceptable_frame_type: all
+    vlans_untagged: []
     vlans_tagged: [110]
+    vlans_disabled: []
+    acceptable_frame_type: all
   - name: 1/0/8
     port_type: two-gigabitEthernet
+    speed: auto
     enabled: true
+    description: ""
     pvid: 1
-    acceptable_frame_type: all
+    vlans_untagged: []
     vlans_tagged: [110]
+    vlans_disabled: []
+    acceptable_frame_type: all
   - name: 1/0/9
     port_type: two-gigabitEthernet
+    speed: auto
     enabled: true
+    description: ""
     pvid: 1
-    acceptable_frame_type: all
+    vlans_untagged: []
     vlans_tagged: [110]
+    vlans_disabled: []
+    acceptable_frame_type: all
   - name: 1/0/10
     port_type: two-gigabitEthernet
+    speed: auto
     enabled: true
+    description: ""
     pvid: 1
-    acceptable_frame_type: all
+    vlans_untagged: []
     vlans_tagged: [110]
+    vlans_disabled: []
+    acceptable_frame_type: all
   - name: 1/0/11
     port_type: two-gigabitEthernet
+    speed: auto
     enabled: true
+    description: ""
     pvid: 1
-    acceptable_frame_type: all
+    vlans_untagged: []
     vlans_tagged: [110]
+    vlans_disabled: []
+    acceptable_frame_type: all
   - name: 1/0/12
     port_type: two-gigabitEthernet
+    speed: auto
     enabled: true
+    description: ""
     pvid: 1
-    acceptable_frame_type: all
+    vlans_untagged: []
     vlans_tagged: [110]
+    vlans_disabled: []
+    acceptable_frame_type: all
   - name: 1/0/13
     port_type: two-gigabitEthernet
+    speed: auto
     enabled: true
+    description: ""
     pvid: 1
-    acceptable_frame_type: all
+    vlans_untagged: []
     vlans_tagged: [110]
+    vlans_disabled: []
+    acceptable_frame_type: all
   - name: 1/0/14
     port_type: two-gigabitEthernet
+    speed: auto
     enabled: true
+    description: ""
     pvid: 1
+    vlans_untagged: []
+    vlans_tagged: []
+    vlans_disabled: []
     acceptable_frame_type: all
   - name: 1/0/15
     port_type: two-gigabitEthernet
+    speed: auto
     enabled: true
+    description: ""
     pvid: 1
+    vlans_untagged: []
+    vlans_tagged: []
+    vlans_disabled: []
     acceptable_frame_type: all
   - name: 1/0/16
     port_type: two-gigabitEthernet
+    speed: auto
     enabled: true
+    description: ""
     pvid: 1
+    vlans_untagged: []
+    vlans_tagged: []
+    vlans_disabled: []
     acceptable_frame_type: all
   - name: 1/0/17
     port_type: two-gigabitEthernet
+    speed: auto
     enabled: true
+    description: ""
     pvid: 1
+    vlans_untagged: []
+    vlans_tagged: []
+    vlans_disabled: []
     acceptable_frame_type: all
   - name: 1/0/18
     port_type: two-gigabitEthernet
+    speed: auto
     enabled: true
+    description: ""
     pvid: 1
+    vlans_untagged: []
+    vlans_tagged: []
+    vlans_disabled: []
     acceptable_frame_type: all
   - name: 1/0/19
     port_type: two-gigabitEthernet
+    speed: auto
     enabled: true
+    description: ""
     pvid: 1
+    vlans_untagged: []
+    vlans_tagged: []
+    vlans_disabled: []
     acceptable_frame_type: all
   - name: 1/0/20
     port_type: two-gigabitEthernet
+    speed: auto
     enabled: true
+    description: ""
     pvid: 1
+    vlans_untagged: []
+    vlans_tagged: []
+    vlans_disabled: []
     acceptable_frame_type: all
   - name: 1/0/21
     port_type: two-gigabitEthernet
+    speed: auto
     enabled: true
+    description: ""
     pvid: 1
+    vlans_untagged: []
+    vlans_tagged: []
+    vlans_disabled: []
     acceptable_frame_type: all
   - name: 1/0/22
     port_type: two-gigabitEthernet
+    speed: auto
     enabled: true
+    description: ""
     pvid: 1
+    vlans_untagged: []
+    vlans_tagged: []
+    vlans_disabled: []
     acceptable_frame_type: all
   - name: 1/0/23
     port_type: two-gigabitEthernet
+    speed: auto
     enabled: true
+    description: ""
     pvid: 1
+    vlans_untagged: []
+    vlans_tagged: []
+    vlans_disabled: []
     acceptable_frame_type: all
   - name: 1/0/24
     port_type: two-gigabitEthernet
+    speed: auto
     enabled: true
+    description: ""
     pvid: 1
+    vlans_untagged: []
+    vlans_tagged: []
+    vlans_disabled: []
     acceptable_frame_type: all
   - name: 1/0/25
     port_type: ten-gigabitEthernet
+    speed: "10000"
     enabled: true
+    description: ""
     pvid: 1
-    vlans_tagged: [110, 120]
     vlans_untagged: [10]
+    vlans_tagged: [110, 120]
+    vlans_disabled: []
     acceptable_frame_type: all
   - name: 1/0/26
     port_type: ten-gigabitEthernet
+    speed: "10000"
     enabled: true
+    description: ""
     pvid: 1
-    vlans_tagged: [110, 120]
     vlans_untagged: [10]
+    vlans_tagged: [110, 120]
+    vlans_disabled: []
     acceptable_frame_type: all
   - name: 1/0/27
     port_type: ten-gigabitEthernet
+    speed: "10000"
     enabled: true
+    description: ""
     pvid: 1
+    vlans_untagged: []
     vlans_tagged: [110, 120]
     vlans_disabled: [10]
     acceptable_frame_type: all
-# LACP-style trunk example on one uplink: description + all VLANs tagged.
   - name: 1/0/28
     port_type: ten-gigabitEthernet
+    speed: "10000"
     enabled: true
     description: "Trunk uplink to core switch"
     pvid: 1
-    acceptable_frame_type: tagged
-    vlans_tagged: [110, 3901]
     vlans_untagged: [10]
+    vlans_tagged: [110, 3901]
+    vlans_disabled: []
+    acceptable_frame_type: tagged
 
 # ------------------------------------------------------------------
 # ACLs (jetstream_acls)

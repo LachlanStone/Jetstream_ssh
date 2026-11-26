@@ -29,13 +29,14 @@
     - jetstream_manage_vlans
     - jetstream_vlans | length > 0
 
-- name: Interfaces
-  lachlanstone.jetstream.jetstream_interfaces:
-    interfaces: "{{ jetstream_interfaces }}"
+- name: Interfaces 
+  lachlanstone.jetstream.jetstream_interfaces_v2:
+    interfaces: "{{ item }}"
   args: "{{ jetstream_connection_defaults }}"
   when:
     - jetstream_manage_interfaces
     - jetstream_interfaces | length > 0
+  loop: "{{ jetstream_interfaces | batch(jetstream_interfaces_batch_size | default(5)) | list }}"
 
 - name: ACLs
   lachlanstone.jetstream.jetstream_acls:
