@@ -36,10 +36,10 @@ class TestJetstreamInterfaces(unittest.TestCase):
 
     def test_build_commands_acceptable_frame_type(self):
         tagged = build_commands({"name": "1/0/1", "acceptable_frame_type": "tagged"})
-        self.assertIn("switchport general acceptable-frame-type tagged-only", tagged)
+        self.assertIn("switchport acceptable frame tagged", tagged)
 
         all_frames = build_commands({"name": "1/0/1", "acceptable_frame_type": "all"})
-        self.assertIn("no switchport general acceptable-frame-type tagged-only", all_frames)
+        self.assertIn("switchport acceptable frame all", all_frames)
 
         omitted = build_commands({"name": "1/0/1"})
         self.assertTrue(

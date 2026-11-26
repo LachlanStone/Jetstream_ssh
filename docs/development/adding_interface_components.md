@@ -183,7 +183,7 @@ python3 -c "import ast, pathlib; ast.parse(pathlib.Path('plugins/modules/jetstre
 | `pvid` | `pvid` | int | `None` (omitted) | `switchport pvid <N>` |
 | `vlans_untagged` | `vlans_untagged` | list[int] | `[]` | `switchport general allowed vlan <N,...> untagged` |
 | `vlans_tagged` | `vlans_tagged` | list[int] | `[]` | `switchport general allowed vlan <N,...> tagged` |
-| `acceptable_frame_type` | `acceptable_frame_type` | str | `"all"` | `tagged` → `switchport general acceptable-frame-type tagged-only`; `all` → `no switchport general acceptable-frame-type tagged-only` |
+| `acceptable_frame_type` | `acceptable_frame_type` | str | `"all"` | `tagged` → `switchport acceptable frame tagged`; `all` → `switchport acceptable frame all` |
 | `description` | `description` | str | `None` | `description <text>` (quoted if contains spaces) |
 
 ### `port_type` vs `speed` — important distinction

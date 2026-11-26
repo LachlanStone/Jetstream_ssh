@@ -238,7 +238,7 @@ class TestConfigureInterface(unittest.TestCase):
                 "switchport general allowed vlan 20 untagged",
                 "switchport general allowed vlan 30 tagged",
                 "no switchport general allowed vlan 40",
-                "switchport general acceptable-frame-type tagged-only",
+                "switchport acceptable frame tagged",
                 'description "Server Port"',
                 "exit",
             ],
@@ -260,7 +260,7 @@ class TestConfigureInterface(unittest.TestCase):
             step["commands"],
             [
                 "interface two-gigabitEthernet 1/0/1",
-                "no switchport general acceptable-frame-type tagged-only",
+                "switchport acceptable frame all",
                 "exit",
             ],
         )
