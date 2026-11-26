@@ -335,6 +335,7 @@
 # HAPPY PATH — Check mode
 # ---------------------------------------------------------------------------
 
+- name: "[system] Check mode"
   lachlanstone.jetstream.jetstream_system:
     host: "{{ test_host }}"
     port: "{{ test_port }}"
