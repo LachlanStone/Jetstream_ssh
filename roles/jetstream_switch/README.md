@@ -13,7 +13,7 @@ Role template that drives every module in the `lachlanstone.jetstream` collectio
 1. **System** – `jetstream_system`: hostname, location, contact, LLDP, DNS, NTP.
 2. **Users** – `jetstream_user`: local accounts (privilege level, secrets, update policy).
 3. **VLANs** – `jetstream_vlans`: VLANs and optional SVIs (static IP or DHCP).
-4. **Interfaces** – `jetstream_interfaces`: state, description, speed, PVID, tagged/untagged VLANs.
+4. **Interfaces** – `jetstream_interfaces_v2`, configured through `jetstream_interfaces`: state, description, speed, PVID, tagged/untagged VLANs.
 5. **ACLs** – `jetstream_acls`: creation, rules, VLAN binding, removal (looped over `jetstream_acls`).
 6. **Ad-hoc commands** – `jetstream_command`: any extra CLI commands.
 7. **Save** – `jetstream_save`: persist running config to startup.
@@ -109,5 +109,5 @@ A ready-made calling play lives in `extras/jetstream_switch_example.yml`.
 ## Notes
 
 * All modules require `netmiko`; install with `pip install netmiko`.
-* `check_mode` is supported by `jetstream_interfaces`, `jetstream_system`, `jetstream_user`, `jetstream_acls`, `jetstream_vlans` and `jetstream_save`.
+* `check_mode` is supported by `jetstream_interfaces_v2`, `jetstream_system`, `jetstream_user`, `jetstream_acls`, `jetstream_vlans` and `jetstream_save`.
 * Change `jetstream_save_command` to `write` on firmware that does not accept `copy running-config startup-config`.

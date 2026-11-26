@@ -175,6 +175,7 @@ steps:
 """
 
 import logging
+import traceback
 from ansible.module_utils.basic import AnsibleModule
 from netmiko import ConnectHandler
 
@@ -197,7 +198,7 @@ logger.propagate = False
 formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 # Component: StreamHandler (logger.info debug messages to console)
 logging_enabled = True  # Set this to False to disable console logging
-if logging_enabled:
+if logging_enabled and not logger.handlers:
     stream_handler = logging.StreamHandler()
     stream_handler.setLevel(level=logging.INFO)
     stream_handler.setFormatter(fmt=formatter)
@@ -514,7 +515,7 @@ def main():
     try:
         run_module(module)  # run_module now handles exit_json itself
     except Exception as e:
-        module.fail_json(msg=str(e), exception=e, check_mode=module.check_mode)
+        module.fail_json(msg=str(e), exception=traceback.format_exc(), check_mode=module.check_mode)
 
 
 if __name__ == "__main__":

@@ -84,7 +84,7 @@ guest1           guest            enable
         collector.set_basic_info(switch="192.0.2.10", check_mode=True, verbosity=4)
 
         class FakeNetConnect:
-            def find_prompt(self):
+            def find_prompt(self, pattern=None):
                 return "Switch#"
 
             def send_command(self, cmd, **kwargs):
@@ -111,7 +111,7 @@ guest1           guest            enable
         collector.set_basic_info(switch="192.0.2.10", check_mode=True, verbosity=4)
 
         class FakeNetConnect:
-            def find_prompt(self):
+            def find_prompt(self, pattern=None):
                 return "Switch#"
 
             def send_command(self, cmd, **kwargs):
@@ -139,7 +139,7 @@ guest1           guest            enable
         collector.set_basic_info(switch="192.0.2.10", check_mode=False, verbosity=4)
 
         class FakeNetConnect:
-            def find_prompt(self):
+            def find_prompt(self, pattern=None):
                 return "Switch#"
 
             def send_command(self, cmd, **kwargs):
@@ -221,7 +221,7 @@ guest1           guest            enable
 
         # Mock net_connect that returns existing users
         class FakeNetConnect:
-            def find_prompt(self):
+            def find_prompt(self, pattern=None):
                 return "Switch#"
             def send_command(self, cmd, **kwargs):
                 if "show user" in cmd:

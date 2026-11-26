@@ -108,9 +108,14 @@ def build_commands(iface):
         vlan_str = ",".join(str(v) for v in vlans_disabled)
         cmds.append(f"no switchport general allowed vlan {vlan_str}")
 
-    acceptable_frame = iface.get("acceptable_frame_type") or "all"
-    if acceptable_frame != "all":
-        cmds.append(f"switchport general acceptable-frame-type tagged-only")
+    # ``tagged`` and ``all`` use the direct form the switch CLI accepts:
+    #   switchport acceptable frame <all|tagged>
+    # Omit the key to leave the port untouched.
+    acceptable_frame = iface.get("acceptable_frame_type")
+    if acceptable_frame == "tagged":
+        cmds.append("switchport acceptable frame tagged")
+    elif acceptable_frame == "all":
+        cmds.append("switchport acceptable frame all")
 
     description = iface.get("description")
     if description:

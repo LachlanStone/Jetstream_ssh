@@ -144,6 +144,7 @@ steps:
 """
 
 import logging
+import traceback
 
 from ansible.module_utils.basic import AnsibleModule
 from netmiko import ConnectHandler
@@ -175,7 +176,7 @@ logger.setLevel(level=logging.DEBUG)
 logger.propagate = False
 formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logging_enabled = True
-if logging_enabled:
+if logging_enabled and not logger.handlers:
     stream_handler = logging.StreamHandler()
     stream_handler.setLevel(level=logging.INFO)
     stream_handler.setFormatter(fmt=formatter)
@@ -359,7 +360,7 @@ def main():
     try:
         run_module(module)
     except Exception as e:
-        module.fail_json(msg=str(e), exception=e, check_mode=module.check_mode)
+        module.fail_json(msg=str(e), exception=traceback.format_exc(), check_mode=module.check_mode)
 
 
 if __name__ == "__main__":

@@ -5,6 +5,7 @@ action_groups:
     - jetstream_acls
     - jetstream_command
     - jetstream_interfaces
+    - jetstream_interfaces_v2
     - jetstream_save
     - jetstream_system
     - jetstream_user

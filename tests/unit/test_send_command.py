@@ -7,6 +7,19 @@ from plugins.module_utils.send_command import send_command
 
 
 class TestSendCommand(unittest.TestCase):
+    def test_default_prompt_waits_for_complete_prompt(self):
+        conn = mock.MagicMock()
+        conn.find_prompt.side_effect = lambda pattern=None: (
+            "switch(config)#" if pattern else "switch(config"
+        )
+        conn.send_command.return_value = "output"
+
+        self.assertEqual(send_command(conn, "show vlan"), "output")
+        self.assertEqual(
+            conn.send_command.call_args.kwargs["expect_string"],
+            r"switch\(config\)\#",
+        )
+
     def test_sends_once_when_output_is_empty(self):
         conn = mock.MagicMock()
         conn.find_prompt.return_value = "switch(config)#"
