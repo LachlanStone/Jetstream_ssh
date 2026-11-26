@@ -18,6 +18,7 @@
     username: "{{ test_username }}"
     password: "{{ test_password }}"
     enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
     vlans: "{{ test_vlans }}"
   register: vlans_named
   tags: [jetstream_vlans, vlans_named, never]
@@ -39,6 +40,7 @@
     username: "{{ test_username }}"
     password: "{{ test_password }}"
     enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
     vlans:
       - "{{ test_vlan_static_ip }}"
   register: vlans_static
@@ -61,6 +63,7 @@
     username: "{{ test_username }}"
     password: "{{ test_password }}"
     enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
     vlans:
       - "{{ test_vlan_dhcp }}"
   register: vlans_dhcp
@@ -83,6 +86,7 @@
     username: "{{ test_username }}"
     password: "{{ test_password }}"
     enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
     vlans:
       - vlan_id: 1
         name: TEST_VLAN_MIN
@@ -103,6 +107,7 @@
     username: "{{ test_username }}"
     password: "{{ test_password }}"
     enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
     vlans:
       - vlan_id: 4094
         name: TEST_VLAN_MAX
@@ -125,6 +130,7 @@
     username: "{{ test_username }}"
     password: "{{ test_password }}"
     enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
     vlans:
       - vlan_id: 999
         name: CHECK_MODE_ONLY
@@ -152,6 +158,7 @@
     username: "{{ test_username }}"
     password: "{{ test_password }}"
     enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
     vlans:
       - vlan_id: 0
         name: BAD_ZERO
@@ -175,6 +182,7 @@
     username: "{{ test_username }}"
     password: "{{ test_password }}"
     enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
     vlans:
       - vlan_id: 4095
         name: BAD_MAX
@@ -198,6 +206,7 @@
     username: "{{ test_username }}"
     password: "{{ test_password }}"
     enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
     vlans:
       - vlan_id: 910
         ip_address: 192.168.91.1
@@ -223,6 +232,7 @@
     username: "{{ test_username }}"
     password: "{{ test_password }}"
     enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
     vlans:
       - vlan_id: 910
         ip_address: 192.168.91.1
@@ -246,6 +256,7 @@
     username: "{{ test_username }}"
     password: "{{ test_password }}"
     enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
     vlans: []
   register: vlans_empty
   tags: [jetstream_vlans, bad_data, never]

@@ -23,6 +23,7 @@
     username: "{{ test_username }}"
     password: "{{ test_password }}"
     enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
     name: "{{ test_users.single_admin.name }}"
     privilege: "{{ test_users.single_admin.privilege }}"
     password_type: "{{ test_users.single_admin.password_type }}"
@@ -51,6 +52,7 @@
     username: "{{ test_username }}"
     password: "{{ test_password }}"
     enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
     name: "{{ test_users.single_guest.name }}"
     privilege: "{{ test_users.single_guest.privilege }}"
     password_type: "{{ test_users.single_guest.password_type }}"
@@ -78,6 +80,7 @@
     username: "{{ test_username }}"
     password: "{{ test_password }}"
     enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
     name: "{{ test_users.single_operator.name }}"
     privilege: "{{ test_users.single_operator.privilege }}"
     password_type: "{{ test_users.single_operator.password_type }}"
@@ -105,6 +108,7 @@
     username: "{{ test_username }}"
     password: "{{ test_password }}"
     enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
     name: "{{ test_users.single_power.name }}"
     privilege: "{{ test_users.single_power.privilege }}"
     password_type: "{{ test_users.single_power.password_type }}"
@@ -131,6 +135,7 @@
     username: "{{ test_username }}"
     password: "{{ test_password }}"
     enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
     name: "{{ test_users.single_user.name }}"
     privilege: "{{ test_users.single_user.privilege }}"
     password_type: "{{ test_users.single_user.password_type }}"
@@ -159,6 +164,7 @@
     username: "{{ test_username }}"
     password: "{{ test_password }}"
     enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
     name: "{{ test_users.single_admin.name }}"
     privilege: "{{ test_users.single_admin.privilege }}"
     password_type: "{{ test_users.single_admin.password_type }}"
@@ -190,6 +196,7 @@
     username: "{{ test_username }}"
     password: "{{ test_password }}"
     enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
     name: "{{ test_users.single_admin.name }}"
     privilege: "{{ test_users.single_admin.privilege }}"
     password_type: "{{ test_users.single_admin.password_type }}"
@@ -232,6 +239,7 @@
     username: "{{ test_username }}"
     password: "{{ test_password }}"
     enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
     users:
       - name: ts_bulk1
         privilege: admin
@@ -276,6 +284,7 @@
     username: "{{ test_username }}"
     password: "{{ test_password }}"
     enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
     name: ts_toplevel
     privilege: guest
     password_type: secret
@@ -313,6 +322,7 @@
     username: "{{ test_username }}"
     password: "{{ test_password }}"
     enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
     name: ts_savetest
     privilege: guest
     password_type: secret
@@ -343,6 +353,7 @@
     username: "{{ test_username }}"
     password: "{{ test_password }}"
     enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
     name: ts_checkonly
     privilege: admin
     password_type: secret
@@ -374,6 +385,7 @@
     username: "{{ test_username }}"
     password: "{{ test_password }}"
     enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
     name: "{{ test_users.single_guest.name }}"
     state: absent
   register: user_absent_single
@@ -394,6 +406,7 @@
     username: "{{ test_username }}"
     password: "{{ test_password }}"
     enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
     name: "{{ test_users.single_guest.name }}"
     state: absent
   register: user_absent_idempotent
@@ -419,6 +432,7 @@
     username: "{{ test_username }}"
     password: "{{ test_password }}"
     enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
     name: "this_name_is_way_too_long_for_jetstream"
     privilege: admin
     password_type: secret
@@ -445,6 +459,7 @@
     username: "{{ test_username }}"
     password: "{{ test_password }}"
     enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
     name: "bad user name"
     privilege: admin
     password_type: secret
@@ -471,6 +486,7 @@
     username: "{{ test_username }}"
     password: "{{ test_password }}"
     enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
     name: ts_no_password
     privilege: admin
     state: present
@@ -495,6 +511,7 @@
     username: "{{ test_username }}"
     password: "{{ test_password }}"
     enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
     name: ts_badpriv
     privilege: superuser
     password_type: secret
@@ -521,6 +538,7 @@
     username: "{{ test_username }}"
     password: "{{ test_password }}"
     enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
     name: ts_badenc
     privilege: admin
     password_type: secret
@@ -547,6 +565,7 @@
     username: "{{ test_username }}"
     password: "{{ test_password }}"
     enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
   register: user_no_input
   tags: [jetstream_user, bad_data, never]
 
@@ -569,6 +588,7 @@
     username: "{{ test_username }}"
     password: "{{ test_password }}"
     enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
     users:
       - name: "{{ test_users.single_admin.name }}"
         state: absent

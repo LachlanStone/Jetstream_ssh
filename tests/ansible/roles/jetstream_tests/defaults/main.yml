@@ -14,11 +14,13 @@ test_port: "{{ ssh_port | default(22) }}"
 test_username: "{{ ssh_username | default('admin') }}"
 test_password: "{{ ssh_password | default('password') }}"
 test_enable_password: "{{ ssh_enable_password | default('password') }}"
+# Note: sourced from jetstream_read_timout in group_vars/switch.yml (spelling preserved)
+test_read_timeout: "{{ jetstream_read_timout | default(60) }}"
 
 # ---------------------------------------------------------------------------
 # jetstream_system fixtures
 # ---------------------------------------------------------------------------
-test_hostname: "test-switch-01"
+test_hostname: test-switch-01
 test_location: "Lab Room"
 test_contact: "test@example.com"
 test_dns_primary: "8.8.8.8"

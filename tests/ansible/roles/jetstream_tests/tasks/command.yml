@@ -17,6 +17,7 @@
     username: "{{ test_username }}"
     password: "{{ test_password }}"
     enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
     command_level: enable
     command: "show system-info"
   register: cmd_single
@@ -44,6 +45,7 @@
     username: "{{ test_username }}"
     password: "{{ test_password }}"
     enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
     command_level: enable
     commands:
       - "show system-info"
@@ -72,6 +74,7 @@
     username: "{{ test_username }}"
     password: "{{ test_password }}"
     enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
     command_level: cli
     command: "show version"
   register: cmd_cli
@@ -94,6 +97,7 @@
     username: "{{ test_username }}"
     password: "{{ test_password }}"
     enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
     command_level: config
     command: "show running-config"
   register: cmd_config
@@ -116,6 +120,7 @@
     username: "{{ test_username }}"
     password: "{{ test_password }}"
     enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
     command_level: enable
   register: cmd_fallback
   tags: [jetstream_command, cmd_fallback, never]
@@ -138,6 +143,7 @@
     username: "{{ test_username }}"
     password: "{{ test_password }}"
     enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
     command_level: enable
     command: "show version"
     commands:
@@ -163,6 +169,7 @@
     username: "{{ test_username }}"
     password: "{{ test_password }}"
     enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
     command_level: enable
     command: "show system-info"
   check_mode: true
@@ -198,6 +205,7 @@
     username: "{{ test_username }}"
     password: "{{ test_password }}"
     enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
     command_level: superuser
     command: "show version"
   register: cmd_bad_level

@@ -17,6 +17,7 @@
     username: "{{ test_username }}"
     password: "{{ test_password }}"
     enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
   register: save_default
   tags: [jetstream_save, save_default, never]
 
@@ -49,6 +50,7 @@
     username: "{{ test_username }}"
     password: "{{ test_password }}"
     enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
     command: "write"
   register: save_write
   tags: [jetstream_save, save_write, never]
@@ -72,6 +74,7 @@
     username: "{{ test_username }}"
     password: "{{ test_password }}"
     enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
   check_mode: true
   register: save_check
   tags: [jetstream_save, save_check_mode, never]
@@ -112,6 +115,7 @@
     username: "{{ test_username }}"
     password: "{{ test_password }}"
     enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
     command: "save now"
   register: save_bad_cmd
   ignore_errors: true

@@ -20,6 +20,7 @@
     username: "{{ test_username }}"
     password: "{{ test_password }}"
     enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
     interfaces:
       - name: "{{ test_iface_primary }}"
         port_type: gigabitEthernet
@@ -44,6 +45,7 @@
     username: "{{ test_username }}"
     password: "{{ test_password }}"
     enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
     interfaces:
       - name: "{{ test_iface_primary }}"
         port_type: two-gigabitEthernet
@@ -74,6 +76,7 @@
     username: "{{ test_username }}"
     password: "{{ test_password }}"
     enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
     interfaces:
       - name: "{{ test_iface_tertiary }}"
         port_type: ten-gigabitEthernet
@@ -100,6 +103,7 @@
     username: "{{ test_username }}"
     password: "{{ test_password }}"
     enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
     interfaces:
       - name: "{{ test_iface_secondary }}"
         port_type: fastEthernet
@@ -127,6 +131,7 @@
     username: "{{ test_username }}"
     password: "{{ test_password }}"
     enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
     interfaces:
       - name: "{{ test_iface_secondary }}"
         port_type: "{{ test_iface_port_type }}"
@@ -160,6 +165,7 @@
     username: "{{ test_username }}"
     password: "{{ test_password }}"
     enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
     interfaces:
       - name: "{{ test_iface_secondary }}"
         port_type: "{{ test_iface_port_type }}"
@@ -182,6 +188,7 @@
     username: "{{ test_username }}"
     password: "{{ test_password }}"
     enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
     interfaces:
       - name: "{{ test_iface_secondary }}"
         port_type: "{{ test_iface_port_type }}"
@@ -207,6 +214,7 @@
     username: "{{ test_username }}"
     password: "{{ test_password }}"
     enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
     interfaces:
       - name: "{{ test_iface_primary }}"
         port_type: "{{ test_iface_port_type }}"
@@ -233,6 +241,7 @@
     username: "{{ test_username }}"
     password: "{{ test_password }}"
     enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
     interfaces:
       - name: "{{ test_iface_primary }}"
         port_type: "{{ test_iface_port_type }}"
@@ -255,6 +264,7 @@
     username: "{{ test_username }}"
     password: "{{ test_password }}"
     enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
     interfaces:
       - name: "{{ test_iface_primary }}"
         port_type: "{{ test_iface_port_type }}"
@@ -272,6 +282,7 @@
     username: "{{ test_username }}"
     password: "{{ test_password }}"
     enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
     interfaces:
       - name: "{{ test_iface_primary }}"
         port_type: "{{ test_iface_port_type }}"
@@ -293,6 +304,7 @@
     username: "{{ test_username }}"
     password: "{{ test_password }}"
     enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
     interfaces:
       - name: "{{ test_iface_primary }}"
         port_type: "{{ test_iface_port_type }}"
@@ -318,6 +330,7 @@
     username: "{{ test_username }}"
     password: "{{ test_password }}"
     enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
     interfaces:
       - name: "gigabitEthernet {{ test_iface_primary }}"
         description: "FullyQualified"
@@ -342,6 +355,7 @@
     username: "{{ test_username }}"
     password: "{{ test_password }}"
     enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
     interfaces:
       - name: "{{ test_iface_primary }}"
         port_type: "{{ test_iface_port_type }}"
@@ -372,6 +386,7 @@
     username: "{{ test_username }}"
     password: "{{ test_password }}"
     enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
     interfaces:
       - name: "{{ test_iface_primary }}"
         port_type: "{{ test_iface_port_type }}"
@@ -401,6 +416,7 @@
     username: "{{ test_username }}"
     password: "{{ test_password }}"
     enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
     interfaces:
       - name: "1/0/99"
         port_type: superEthernet
@@ -424,6 +440,7 @@
     username: "{{ test_username }}"
     password: "{{ test_password }}"
     enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
     interfaces:
       - name: "1/0/99"
         speed: "500"
@@ -447,6 +464,7 @@
     username: "{{ test_username }}"
     password: "{{ test_password }}"
     enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
     interfaces:
       - name: "1/0/99"
         acceptable_frame_type: untagged-only
@@ -470,6 +488,7 @@
     username: "{{ test_username }}"
     password: "{{ test_password }}"
     enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
     interfaces: []
   register: iface_empty
   tags: [jetstream_interfaces, bad_data, never]
