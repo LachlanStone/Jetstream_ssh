@@ -254,6 +254,10 @@ def run_module(module):
     )
 
     vlans = module.params.get("vlans") or []
+    if not vlans:
+        result = collector.return_info()
+        module.exit_json(**result)
+        return
 
     with ConnectHandler(**device) as net_connect:
         net_connect.enable()

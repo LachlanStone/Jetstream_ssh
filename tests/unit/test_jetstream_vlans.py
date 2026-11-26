@@ -3,7 +3,7 @@ import unittest.mock as mock
 
 from plugins.module_utils.collector import ResultCollector
 from plugins.module_utils.vlans.vlan_builder import build_vlan_commands
-from plugins.modules.jetstream_vlans import configure_vlan
+from plugins.modules.jetstream_vlans import configure_vlan, run_module
 
 
 class TestVlanBuilder(unittest.TestCase):
@@ -128,6 +128,29 @@ class TestJetstreamVlans(unittest.TestCase):
         self.assertTrue(step["changed"])
         self.assertEqual(step["commands"], ["vlan 10", "name Servers", "exit"])
         self.assertEqual(fake_conn.send_command_timing.call_count, 1)
+
+    def test_run_module_empty_vlans(self):
+        fake_module = mock.MagicMock()
+        fake_module.params = {
+            "host": "192.0.2.10",
+            "port": 22,
+            "username": "admin",
+            "password": "pw",
+            "enable_password": "",
+            "read_timeout": None,
+            "vlans": [],
+        }
+        fake_module.check_mode = False
+        fake_module._verbosity = 0
+
+        with mock.patch("plugins.modules.jetstream_vlans.ConnectHandler") as mock_connect:
+            run_module(fake_module)
+
+        mock_connect.assert_not_called()
+        fake_module.exit_json.assert_called_once()
+        kwargs = fake_module.exit_json.call_args.kwargs
+        self.assertFalse(kwargs["changed"])
+        self.assertIsNone(kwargs["current_state"])
 
 
 if __name__ == "__main__":
