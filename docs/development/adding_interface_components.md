@@ -1,7 +1,11 @@
-# Adding Components to `jetstream_interfaces`
+# Adding Components to `jetstream_interfaces_v2`
 
 This document is written for a future AI agent or developer picking up this module cold.
 Read it fully before touching any file.
+
+`jetstream_interfaces_v2` is the current, idempotent interface module. The
+original `jetstream_interfaces` is kept for backwards compatibility and is not
+extended — new fields go into `_v2` only.
 
 ---
 
@@ -10,26 +14,30 @@ Read it fully before touching any file.
 ```
 plugins/
   modules/
-    jetstream_interfaces.py              # Ansible module entry point
+    jetstream_interfaces_v2.py         # Ansible module entry point (idempotent)
+    jetstream_interfaces.py            # legacy, frozen
   module_utils/
     interfaces/
       __init__.py                        # empty, marks package
       interface_builder.py              # pure command builder — no Ansible, no Netmiko
+      interface_classes.py              # InterfaceConfig / RunningConfigInterface models + diff
+      interface_parsers.py             # parse show interface configuration / running-config
     send_command.py                      # sends one CLI command over Netmiko
     config_mode.py                       # prompt-based CLI mode detection/guards
     collector.py                         # ResultCollector: accumulates per-step results
 ```
 
-Every new interface parameter touches exactly **two files**:
+Every new interface parameter touches exactly **three files**:
 1. `interface_builder.py` — what CLI commands to emit
-2. `jetstream_interfaces.py` — what YAML the user is allowed to write
+2. `interface_classes.py` — the model field plus `diff_interface` comparison
+3. `jetstream_interfaces_v2.py` — what YAML the user is allowed to write
 
-Nothing else. `configure_interface()` in the module calls `build_commands()` and
-iterates the result — you do not touch that function for a new field.
+Nothing else. `configure_interface()` in the module calls `diff_interface()` and
+`build_commands()` and iterates the result — you do not touch that function for a new field.
 
 ---
 
-## The two-file contract
+## The three-file contract
 
 ### `interface_builder.py` — `build_commands(iface)`
 
@@ -50,7 +58,7 @@ expects them, bracketed by `interface <port-type> X/Y/Z` at the top and
 - No Ansible imports. No Netmiko imports. The function must be importable and
   testable with plain Python.
 
-### `jetstream_interfaces.py` — `main()` → `argument_spec`
+### `jetstream_interfaces_v2.py` — `main()` → `argument_spec`
 
 The `interfaces` list element lives under `argument_spec["interfaces"]["options"]`.
 Add your new field there as a sibling of the existing keys.
@@ -88,16 +96,34 @@ if storm_control is not None:
     cmds.append(f"switchport general storm-control broadcast {storm_control}")
 ```
 
-Also update the `Optional keys` line in the docstring:
+### Step 2 — add model field and diff logic in `interface_classes.py`
+
+In `RunningConfigInterface`, add the field:
 
 ```python
-#            Optional keys: ``port_type``, ``speed``, ``enabled``,
-#                           ``description``, ``pvid``, ``vlans_untagged``,
-#                           ``vlans_tagged``, ``acceptable_frame_type``,
-#                           ``storm_control``.
+storm_control: Optional[int] = None
 ```
 
-### Step 2 — add to `argument_spec` in `jetstream_interfaces.py`
+In `_apply_subcommand`, add a line to parse it from `show running-config`:
+
+```python
+if line.startswith("switchport general storm-control broadcast "):
+    iface.storm_control = int(line.split()[-1])
+    return
+```
+
+In `diff_interface`, add the comparison:
+
+```python
+storm_control = desired.get("storm_control")
+if storm_control is not None:
+    current_storm = running.storm_control if running is not None else None
+    if current_storm != storm_control:
+        delta["storm_control"] = storm_control
+        changed = True
+```
+
+### Step 3 — add to `argument_spec` in `jetstream_interfaces_v2.py`
 
 Inside `argument_spec["interfaces"]["options"]`, after `acceptable_frame_type`:
 
@@ -109,7 +135,9 @@ Inside `argument_spec["interfaces"]["options"]`, after `acceptable_frame_type`:
 },
 ```
 
-### Step 3 — smoke-test locally
+Also add it to the `DOCUMENTATION` block's `suboptions` section.
+
+### Step 4 — smoke-test locally
 
 Run this without a real switch:
 
@@ -136,10 +164,10 @@ print("\n".join(cmds))
 Expected output includes `switchport general storm-control broadcast 10` before `exit`.
 Also run the same with `storm_control=None` and confirm the line is absent.
 
-### Step 4 — verify the module parses cleanly
+### Step 5 — verify the module parses cleanly
 
 ```bash
-python3 -c "import ast, pathlib; ast.parse(pathlib.Path('plugins/modules/jetstream_interfaces.py').read_text()); print('OK')"
+python3 -c "import ast, pathlib; ast.parse(pathlib.Path('plugins/modules/jetstream_interfaces_v2.py').read_text()); print('OK')"
 ```
 
 ---
@@ -250,5 +278,5 @@ runs in check mode so the preview matches the commands that would run.
 
 ## Things not implemented (known limits)
 
-- **No idempotency.** The module always pushes commands. There is no `show interface` read before writing. To add it: write a TextFSM template under `ntc_templates/templates/`, parse current state, diff against desired, skip commands that are already correct.
-- **No `state: absent`.** Removing a VLAN from a port or reverting a field to default requires knowing the `no` form of each command. Add a `state` param (`present` / `absent`) and a second command-list builder (`build_absent_commands`) if needed.
+- **VLAN removal via `vlans_disabled` is list-based, not state-based.** There is no `state: absent` per interface. To remove a VLAN from a port, put its ID in `vlans_disabled`; there is no bulk "reset port to factory defaults" action. If needed, add a `state` param (`present` / `reset`) and a `build_reset_commands` builder.
+- **No TextFSM templates.** Parsing is done by hand-rolled regex in `interface_parsers.py`. If the switch firmware changes output format, the parsers break — unit tests pin the expected format.

@@ -17,7 +17,7 @@ description:
     and only sends the commands for settings that differ, so it reports C(changed=false) when the
     interfaces already match the desired state.
   - Settings omitted from an C(interfaces) entry are left untouched.
-version_added: "2.0.0"
+version_added: "1.2.0"
 author:
   - Lachlan Stone (@lachlanstone)
 requirements:
@@ -148,6 +148,7 @@ steps:
 
 import logging
 import re
+import traceback
 
 from ansible.module_utils.basic import AnsibleModule
 from netmiko import ConnectHandler
@@ -187,7 +188,7 @@ logger.setLevel(level=logging.DEBUG)
 logger.propagate = False
 formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logging_enabled = True
-if logging_enabled:
+if logging_enabled and not logger.handlers:
     stream_handler = logging.StreamHandler()
     stream_handler.setLevel(level=logging.INFO)
     stream_handler.setFormatter(fmt=formatter)
@@ -422,7 +423,7 @@ def main():
     try:
         run_module(module)
     except Exception as e:
-        module.fail_json(msg=str(e), exception=e, check_mode=module.check_mode)
+        module.fail_json(msg=str(e), exception=traceback.format_exc(), check_mode=module.check_mode)
 
 
 if __name__ == "__main__":
