@@ -1,0 +1,213 @@
+<mxfile host="app.diagrams.net" modified="2024-01-01T00:00:00.000Z" agent="Kiro" version="21.0.0" type="device">
+  <diagram id="arch-overview" name="Jetstream Tests — Architecture">
+    <mxGraphModel dx="1422" dy="762" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1654" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- ══════════════════════════════════════════════════════════
+             TITLE
+        ══════════════════════════════════════════════════════════ -->
+        <mxCell id="title" value="lachlanstone.jetstream — Integration Test Role Architecture" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="200" y="30" width="1000" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- ══════════════════════════════════════════════════════════
+             SECTION: ENTRY POINT
+        ══════════════════════════════════════════════════════════ -->
+        <mxCell id="sec-entry" value="ENTRY POINT" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontStyle=1;fontSize=10;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="200" y="90" width="120" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- Playbook -->
+        <mxCell id="playbook" value="&lt;b&gt;test_jetstream_role.yml&lt;/b&gt;&lt;br&gt;ansible-playbook entry point&lt;br&gt;hosts: switch | connection: local&lt;br&gt;environment: NET_TEXTFSM" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1e4d78;strokeColor=#1e4d78;fontColor=#ffffff;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="200" y="110" width="260" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- Arrow -->
+        <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="playbook" target="role-box">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Role box -->
+        <mxCell id="role-box" value="&lt;b&gt;role: jetstream_tests&lt;/b&gt;&lt;br&gt;tests/ansible/roles/jetstream_tests/" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="560" y="110" width="260" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- ══════════════════════════════════════════════════════════
+             SECTION: TAG SELECTOR
+        ══════════════════════════════════════════════════════════ -->
+        <mxCell id="sec-tags" value="TAG SELECTOR — nothing runs without an explicit tag" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontStyle=1;fontSize=10;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="200" y="200" width="400" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="tags-box" value="&lt;b&gt;Module tags (run a full module suite):&lt;/b&gt;  all_modules | jetstream_command | jetstream_system | jetstream_vlans | jetstream_interfaces | jetstream_user | jetstream_acls | jetstream_save&lt;br&gt;&lt;br&gt;&lt;b&gt;Cross-cutting:&lt;/b&gt;  bad_data (all failure tests) | never (default — prevents accidental execution)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;fontSize=10;align=left;" vertex="1" parent="1">
+          <mxGeometry x="200" y="220" width="800" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- ══════════════════════════════════════════════════════════
+             SECTION: ROLE INTERNALS
+        ══════════════════════════════════════════════════════════ -->
+        <mxCell id="sec-internals" value="ROLE INTERNALS" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontStyle=1;fontSize=10;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="200" y="300" width="140" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- defaults -->
+        <mxCell id="defaults" value="&lt;b&gt;defaults/main.yml&lt;/b&gt;&lt;br&gt;(overridable per environment)&lt;br&gt;test_host / test_port&lt;br&gt;test_username / test_password&lt;br&gt;test_iface_primary: 1/0/1&lt;br&gt;test_iface_port_type: two-gigabitEthernet&lt;br&gt;test_vlans: IDs 910–930&lt;br&gt;test_acl_ids: 1901–1905, 1999&lt;br&gt;test_users: ts_admin, ts_guest…" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;align=left;" vertex="1" parent="1">
+          <mxGeometry x="200" y="320" width="200" height="150" as="geometry" />
+        </mxCell>
+
+        <!-- vars -->
+        <mxCell id="vars" value="&lt;b&gt;vars/main.yml&lt;/b&gt;&lt;br&gt;(fixed constants)&lt;br&gt;jetstream_privilege_levels&lt;br&gt;  [admin, guest, operator,&lt;br&gt;   power_user, user]&lt;br&gt;jetstream_protocol_names&lt;br&gt;  [ICMP, IGMP, TCP, UDP,&lt;br&gt;   IPV6, ESP, AH, OSPF]&lt;br&gt;jetstream_dport_protocols: [6,17]" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;align=left;" vertex="1" parent="1">
+          <mxGeometry x="420" y="320" width="200" height="150" as="geometry" />
+        </mxCell>
+
+        <!-- orchestrator -->
+        <mxCell id="orchestrator" value="&lt;b&gt;tasks/main.yml — orchestrator&lt;/b&gt;&lt;br&gt;include_tasks: command.yml&lt;br&gt;include_tasks: system.yml&lt;br&gt;include_tasks: vlans.yml&lt;br&gt;include_tasks: interfaces.yml&lt;br&gt;include_tasks: user.yml&lt;br&gt;include_tasks: acls.yml&lt;br&gt;include_tasks: save.yml" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#1e4d78;strokeWidth=2;fontSize=10;align=left;" vertex="1" parent="1">
+          <mxGeometry x="640" y="320" width="200" height="150" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e-def-orch" style="edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="defaults" target="orchestrator">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-var-orch" style="edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="vars" target="orchestrator">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ══════════════════════════════════════════════════════════
+             SECTION: MODULE TASK FILES
+        ══════════════════════════════════════════════════════════ -->
+        <mxCell id="sec-modules" value="MODULE TASK FILES — 207 total tasks · 100 assertions · 54 bad-data tests" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontStyle=1;fontSize=10;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="200" y="490" width="600" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- command.yml -->
+        <mxCell id="m-command" value="&lt;b&gt;command.yml&lt;/b&gt;&lt;br&gt;17 tasks | 9 asserts | 1 bad data&lt;br&gt;&lt;br&gt;• single command (enable)&lt;br&gt;• multi-command list&lt;br&gt;• cli / enable / config levels&lt;br&gt;• fallback to show system-info&lt;br&gt;• commands overrides command&lt;br&gt;• check_mode no-op&lt;br&gt;• return structure validation&lt;br&gt;&lt;font color=&quot;#b91c1c&quot;&gt;✗ invalid command_level&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8f8f8;strokeColor=#666666;fontSize=9;align=left;" vertex="1" parent="1">
+          <mxGeometry x="200" y="510" width="170" height="175" as="geometry" />
+        </mxCell>
+
+        <!-- system.yml -->
+        <mxCell id="m-system" value="&lt;b&gt;system.yml&lt;/b&gt;&lt;br&gt;39 tasks | 19 asserts | 6 bad data&lt;br&gt;&lt;br&gt;• hostname / location / contact&lt;br&gt;• idempotency (read-before-write)&lt;br&gt;• DNS primary + secondary&lt;br&gt;• LLDP enable + disable + restore&lt;br&gt;• NTP 2 servers (min)&lt;br&gt;• NTP 5 servers (max)&lt;br&gt;• all params combined&lt;br&gt;• check_mode&lt;br&gt;&lt;font color=&quot;#b91c1c&quot;&gt;✗ secondary without primary&lt;/font&gt;&lt;br&gt;&lt;font color=&quot;#b91c1c&quot;&gt;✗ NTP wrong type / missing fields&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8f8f8;strokeColor=#666666;fontSize=9;align=left;" vertex="1" parent="1">
+          <mxGeometry x="380" y="510" width="170" height="175" as="geometry" />
+        </mxCell>
+
+        <!-- vlans.yml -->
+        <mxCell id="m-vlans" value="&lt;b&gt;vlans.yml&lt;/b&gt;&lt;br&gt;22 tasks | 11 asserts | 5 bad data&lt;br&gt;&lt;br&gt;• named VLANs (910–930)&lt;br&gt;• static IP SVI&lt;br&gt;• DHCP SVI&lt;br&gt;• boundary: vlan_id 1&lt;br&gt;• boundary: vlan_id 4094&lt;br&gt;• check_mode&lt;br&gt;&lt;font color=&quot;#b91c1c&quot;&gt;✗ vlan_id 0 and 4095&lt;/font&gt;&lt;br&gt;&lt;font color=&quot;#b91c1c&quot;&gt;✗ ip+dhcp mutual exclusion&lt;/font&gt;&lt;br&gt;&lt;font color=&quot;#b91c1c&quot;&gt;✗ ip without mask&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8f8f8;strokeColor=#666666;fontSize=9;align=left;" vertex="1" parent="1">
+          <mxGeometry x="560" y="510" width="170" height="175" as="geometry" />
+        </mxCell>
+
+        <!-- interfaces.yml -->
+        <mxCell id="m-interfaces" value="&lt;b&gt;interfaces.yml&lt;/b&gt;&lt;br&gt;37 tasks | 18 asserts | 4 bad data&lt;br&gt;&lt;br&gt;• all 4 port_types&lt;br&gt;• speed: 10/100/1000/2500/10000/auto&lt;br&gt;• enabled true/false&lt;br&gt;• PVID + untagged/tagged/disabled VLANs&lt;br&gt;• acceptable_frame_type: tagged / all&lt;br&gt;• description (spaces + plain)&lt;br&gt;• fully-qualified interface name&lt;br&gt;• multiple interfaces per call&lt;br&gt;&lt;font color=&quot;#b91c1c&quot;&gt;✗ unknown port_type / speed / frame_type&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8f8f8;strokeColor=#666666;fontSize=9;align=left;" vertex="1" parent="1">
+          <mxGeometry x="740" y="510" width="170" height="175" as="geometry" />
+        </mxCell>
+
+        <!-- user.yml -->
+        <mxCell id="m-user" value="&lt;b&gt;user.yml&lt;/b&gt;&lt;br&gt;40 tasks | 20 asserts | 6 bad data&lt;br&gt;&lt;br&gt;• all 5 privilege levels&lt;br&gt;• encryption_type 0 / 5 / 7&lt;br&gt;• update_password: on_create vs always&lt;br&gt;• bulk users list&lt;br&gt;• name + users together&lt;br&gt;• save_config: true&lt;br&gt;• password redaction assertion&lt;br&gt;• state: absent (idempotent)&lt;br&gt;• teardown block&lt;br&gt;&lt;font color=&quot;#b91c1c&quot;&gt;✗ username &gt;16 chars / with spaces&lt;/font&gt;&lt;br&gt;&lt;font color=&quot;#b91c1c&quot;&gt;✗ create without password&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8f8f8;strokeColor=#666666;fontSize=9;align=left;" vertex="1" parent="1">
+          <mxGeometry x="920" y="510" width="170" height="175" as="geometry" />
+        </mxCell>
+
+        <!-- acls.yml -->
+        <mxCell id="m-acls" value="&lt;b&gt;acls.yml&lt;/b&gt;&lt;br&gt;35 tasks | 17 asserts | 4 bad data&lt;br&gt;&lt;br&gt;• state: present / update / unbind / absent&lt;br&gt;• rule_type: combined + ip&lt;br&gt;• all 8 protocol_names&lt;br&gt;• protocol by number&lt;br&gt;• dport + dport_mask (explicit + default)&lt;br&gt;• sip/dip with masks&lt;br&gt;• logging enable/disable&lt;br&gt;• idempotency (present on existing)&lt;br&gt;• setup + teardown blocks&lt;br&gt;&lt;font color=&quot;#b91c1c&quot;&gt;✗ protocol+protocol_name (mutex)&lt;/font&gt;&lt;br&gt;&lt;font color=&quot;#b91c1c&quot;&gt;✗ invalid state / action / proto name&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8f8f8;strokeColor=#666666;fontSize=9;align=left;" vertex="1" parent="1">
+          <mxGeometry x="1100" y="510" width="170" height="175" as="geometry" />
+        </mxCell>
+
+        <!-- save.yml -->
+        <mxCell id="m-save" value="&lt;b&gt;save.yml&lt;/b&gt;&lt;br&gt;10 tasks | 6 asserts | 1 bad data&lt;br&gt;&lt;br&gt;• copy running-config startup-config&lt;br&gt;• write command&lt;br&gt;• check_mode (changed: false)&lt;br&gt;• return structure validation&lt;br&gt;&lt;br&gt;&lt;font color=&quot;#b91c1c&quot;&gt;✗ invalid command choice&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8f8f8;strokeColor=#666666;fontSize=9;align=left;" vertex="1" parent="1">
+          <mxGeometry x="1280" y="510" width="170" height="175" as="geometry" />
+        </mxCell>
+
+        <!-- arrows from orchestrator to each module file -->
+        <mxCell id="e-o-cmd"  style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" parent="1" source="orchestrator" target="m-command"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e-o-sys"  style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" parent="1" source="orchestrator" target="m-system"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e-o-vln"  style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" parent="1" source="orchestrator" target="m-vlans"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e-o-ifc"  style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" parent="1" source="orchestrator" target="m-interfaces"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e-o-usr"  style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" parent="1" source="orchestrator" target="m-user"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e-o-acl"  style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" parent="1" source="orchestrator" target="m-acls"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e-o-sav"  style="edgeStyle=orthogonalEdgeStyle;rounded=0;" edge="1" parent="1" source="orchestrator" target="m-save"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+        <!-- ══════════════════════════════════════════════════════════
+             TARGET DEVICE
+        ══════════════════════════════════════════════════════════ -->
+        <mxCell id="sec-switch" value="TARGET DEVICE" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontStyle=1;fontSize=10;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="200" y="705" width="140" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="switch-box" value="&lt;b&gt;TP-Link JetStream / Omada Switch&lt;/b&gt;&lt;br&gt;transport: SSH | Netmiko device_type: tplink_jetstream&lt;br&gt;mode progression: user → enable → config&lt;br&gt;connection vars: test_host | test_port: 22 | test_username | test_password | test_enable_password" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="200" y="725" width="800" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- arrows from each module down to switch -->
+        <mxCell id="e-cmd-sw"  style="edgeStyle=orthogonalEdgeStyle;rounded=0;dashed=1;" edge="1" parent="1" source="m-command" target="switch-box"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e-sys-sw"  style="edgeStyle=orthogonalEdgeStyle;rounded=0;dashed=1;" edge="1" parent="1" source="m-system" target="switch-box"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e-vln-sw"  style="edgeStyle=orthogonalEdgeStyle;rounded=0;dashed=1;" edge="1" parent="1" source="m-vlans" target="switch-box"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e-ifc-sw"  style="edgeStyle=orthogonalEdgeStyle;rounded=0;dashed=1;" edge="1" parent="1" source="m-interfaces" target="switch-box"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e-usr-sw"  style="edgeStyle=orthogonalEdgeStyle;rounded=0;dashed=1;" edge="1" parent="1" source="m-user" target="switch-box"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e-acl-sw"  style="edgeStyle=orthogonalEdgeStyle;rounded=0;dashed=1;" edge="1" parent="1" source="m-acls" target="switch-box"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e-sav-sw"  style="edgeStyle=orthogonalEdgeStyle;rounded=0;dashed=1;" edge="1" parent="1" source="m-save" target="switch-box"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+        <!-- ══════════════════════════════════════════════════════════
+             ACL STATE MACHINE (page 2 reference label)
+        ══════════════════════════════════════════════════════════ -->
+        <mxCell id="sec-acl-sm" value="ACL STATE MACHINE (jetstream_acls)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontStyle=1;fontSize=10;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="200" y="820" width="400" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="acl-absent1" value="&lt;b&gt;absent&lt;/b&gt;&lt;br&gt;not on switch" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="200" y="845" width="120" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="acl-present-unbound" value="&lt;b&gt;present&lt;/b&gt;&lt;br&gt;unbound" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="400" y="845" width="120" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="acl-present-bound" value="&lt;b&gt;present&lt;/b&gt;&lt;br&gt;bound to VLAN" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="600" y="845" width="120" height="55" as="geometry" />
+        </mxCell>
+
+        <mxCell id="acl-e1" value="state: present&lt;br&gt;(create + rules)" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;fontSize=9;" edge="1" parent="1" source="acl-absent1" target="acl-present-unbound">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="acl-e2" value="bind" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;fontSize=9;" edge="1" parent="1" source="acl-present-unbound" target="acl-present-bound">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="acl-e3" value="state: unbind" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;fontSize=9;" edge="1" parent="1" source="acl-present-bound" target="acl-present-unbound">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points"><mxPoint x="660" y="940"/><mxPoint x="460" y="940"/></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="acl-e4" value="state: absent&lt;br&gt;(unbind + remove)" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;fontSize=9;" edge="1" parent="1" source="acl-present-unbound" target="acl-absent1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points"><mxPoint x="460" y="960"/><mxPoint x="260" y="960"/></Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- update annotation -->
+        <mxCell id="acl-update-box" value="&lt;b&gt;state: update&lt;/b&gt;&lt;br&gt;unbind → delete → create → rules → bind&lt;br&gt;(full replacement cycle)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="800" y="845" width="240" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="acl-e5" style="edgeStyle=orthogonalEdgeStyle;dashed=1;" edge="1" parent="1" source="acl-present-bound" target="acl-update-box">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="acl-e6" style="edgeStyle=orthogonalEdgeStyle;dashed=1;" edge="1" parent="1" source="acl-update-box" target="acl-present-bound">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points"><mxPoint x="920" y="975"/><mxPoint x="660" y="975"/></Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- ══════════════════════════════════════════════════════════
+             RETURN SCHEMA
+        ══════════════════════════════════════════════════════════ -->
+        <mxCell id="sec-ret" value="MODULE RETURN SCHEMA CONTRACT" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontStyle=1;fontSize=10;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="200" y="1020" width="400" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ret-standard" value="&lt;b&gt;Standard modules&lt;/b&gt; (system, vlans, interfaces, user, acls, save)&lt;br&gt;msg: str | switch: str | changed: bool | check_mode: bool | cmd: str (pw redacted) | steps: list" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;align=left;" vertex="1" parent="1">
+          <mxGeometry x="200" y="1042" width="500" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ret-command" value="&lt;b&gt;jetstream_command&lt;/b&gt;&lt;br&gt;commands[]: { command, stdout, stdout_lines, textfsm_parsed, parsed? }" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;align=left;" vertex="1" parent="1">
+          <mxGeometry x="720" y="1042" width="400" height="50" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

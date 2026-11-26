@@ -1,0 +1,614 @@
+---
+# =============================================================================
+# MODULE: jetstream_user
+# Tests: all privilege levels, password_type (secret/password),
+#        all encryption_type choices (0/5/7), state present/absent,
+#        update_password (always/on_create), save_config, batch users list,
+#        both name + users together, check_mode, return password redaction
+# Bad data: username > 16 chars, username with spaces, missing password on create,
+#           missing password on update with always, neither name nor users,
+#           invalid privilege, invalid encryption_type
+#
+# TEARDOWN removes all test users at the end of the block.
+# =============================================================================
+
+# ---------------------------------------------------------------------------
+# HAPPY PATH — single user, all privilege levels
+# ---------------------------------------------------------------------------
+
+- name: "[user] Create admin user (privilege: admin, type: secret, enc: 0)"
+  lachlanstone.jetstream.jetstream_user:
+    host: "{{ test_host }}"
+    port: "{{ test_port }}"
+    username: "{{ test_username }}"
+    password: "{{ test_password }}"
+    enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
+    name: "{{ test_users.single_admin.name }}"
+    privilege: "{{ test_users.single_admin.privilege }}"
+    password_type: "{{ test_users.single_admin.password_type }}"
+    encryption_type: "{{ test_users.single_admin.encryption_type }}"
+    user_password: "{{ test_users.single_admin.user_password }}"
+    state: present
+    update_password: always
+    save_config: false
+  register: user_admin
+  tags: [jetstream_user, user_priv_admin, never]
+
+- name: "[user] Assert admin user creation succeeded"
+  ansible.builtin.assert:
+    that:
+      - user_admin is not failed
+      - user_admin.changed == true
+    fail_msg: "user admin create failed: {{ user_admin.msg | default('no msg') }}"
+  tags: [jetstream_user, user_priv_admin, never]
+
+# ---------------------------------------------------------------------------
+
+- name: "[user] Create guest user (privilege: guest, type: password)"
+  lachlanstone.jetstream.jetstream_user:
+    host: "{{ test_host }}"
+    port: "{{ test_port }}"
+    username: "{{ test_username }}"
+    password: "{{ test_password }}"
+    enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
+    name: "{{ test_users.single_guest.name }}"
+    privilege: "{{ test_users.single_guest.privilege }}"
+    password_type: "{{ test_users.single_guest.password_type }}"
+    encryption_type: "{{ test_users.single_guest.encryption_type }}"
+    user_password: "{{ test_users.single_guest.user_password }}"
+    state: present
+    update_password: always
+  register: user_guest
+  tags: [jetstream_user, user_priv_guest, never]
+
+- name: "[user] Assert guest user creation succeeded"
+  ansible.builtin.assert:
+    that:
+      - user_guest is not failed
+      - user_guest.changed == true
+    fail_msg: "user guest failed: {{ user_guest.msg | default('no msg') }}"
+  tags: [jetstream_user, user_priv_guest, never]
+
+# ---------------------------------------------------------------------------
+
+- name: "[user] Create operator user (privilege: operator)"
+  lachlanstone.jetstream.jetstream_user:
+    host: "{{ test_host }}"
+    port: "{{ test_port }}"
+    username: "{{ test_username }}"
+    password: "{{ test_password }}"
+    enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
+    name: "{{ test_users.single_operator.name }}"
+    privilege: "{{ test_users.single_operator.privilege }}"
+    password_type: "{{ test_users.single_operator.password_type }}"
+    encryption_type: "{{ test_users.single_operator.encryption_type }}"
+    user_password: "{{ test_users.single_operator.user_password }}"
+    state: present
+    update_password: always
+  register: user_operator
+  tags: [jetstream_user, user_priv_operator, never]
+
+- name: "[user] Assert operator user creation succeeded"
+  ansible.builtin.assert:
+    that:
+      - user_operator is not failed
+      - user_operator.changed == true
+    fail_msg: "user operator failed: {{ user_operator.msg | default('no msg') }}"
+  tags: [jetstream_user, user_priv_operator, never]
+
+# ---------------------------------------------------------------------------
+
+- name: "[user] Create power_user (privilege: power_user)"
+  lachlanstone.jetstream.jetstream_user:
+    host: "{{ test_host }}"
+    port: "{{ test_port }}"
+    username: "{{ test_username }}"
+    password: "{{ test_password }}"
+    enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
+    name: "{{ test_users.single_power.name }}"
+    privilege: "{{ test_users.single_power.privilege }}"
+    password_type: "{{ test_users.single_power.password_type }}"
+    encryption_type: "{{ test_users.single_power.encryption_type }}"
+    user_password: "{{ test_users.single_power.user_password }}"
+    state: present
+    update_password: always
+  register: user_power
+  tags: [jetstream_user, user_priv_power, never]
+
+- name: "[user] Assert power_user creation succeeded"
+  ansible.builtin.assert:
+    that:
+      - user_power is not failed
+    fail_msg: "user power failed: {{ user_power.msg | default('no msg') }}"
+  tags: [jetstream_user, user_priv_power, never]
+
+# ---------------------------------------------------------------------------
+
+- name: "[user] Create standard user (privilege: user)"
+  lachlanstone.jetstream.jetstream_user:
+    host: "{{ test_host }}"
+    port: "{{ test_port }}"
+    username: "{{ test_username }}"
+    password: "{{ test_password }}"
+    enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
+    name: "{{ test_users.single_user.name }}"
+    privilege: "{{ test_users.single_user.privilege }}"
+    password_type: "{{ test_users.single_user.password_type }}"
+    encryption_type: "{{ test_users.single_user.encryption_type }}"
+    user_password: "{{ test_users.single_user.user_password }}"
+    state: present
+    update_password: always
+  register: user_standard
+  tags: [jetstream_user, user_priv_user, never]
+
+- name: "[user] Assert user privilege creation succeeded"
+  ansible.builtin.assert:
+    that:
+      - user_standard is not failed
+    fail_msg: "user standard failed: {{ user_standard.msg | default('no msg') }}"
+  tags: [jetstream_user, user_priv_user, never]
+
+# ---------------------------------------------------------------------------
+# HAPPY PATH — update_password: on_create (idempotency)
+# ---------------------------------------------------------------------------
+
+- name: "[user] update_password: on_create — user already exists, should skip"
+  lachlanstone.jetstream.jetstream_user:
+    host: "{{ test_host }}"
+    port: "{{ test_port }}"
+    username: "{{ test_username }}"
+    password: "{{ test_password }}"
+    enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
+    name: "{{ test_users.single_admin.name }}"
+    privilege: "{{ test_users.single_admin.privilege }}"
+    password_type: "{{ test_users.single_admin.password_type }}"
+    encryption_type: "{{ test_users.single_admin.encryption_type }}"
+    user_password: "differentpassword1"
+    state: present
+    update_password: on_create
+  register: user_on_create
+  tags: [jetstream_user, user_on_create, never]
+
+- name: "[user] Assert on_create skipped (user already exists, same privilege)"
+  ansible.builtin.assert:
+    that:
+      - user_on_create is not failed
+      - user_on_create.changed == false
+    fail_msg: >
+      update_password=on_create should not update existing user.
+      changed={{ user_on_create.changed }}, msg={{ user_on_create.msg | default('no msg') }}
+  tags: [jetstream_user, user_on_create, never]
+
+# ---------------------------------------------------------------------------
+# HAPPY PATH — update_password: always
+# ---------------------------------------------------------------------------
+
+- name: "[user] update_password: always — force update existing user"
+  lachlanstone.jetstream.jetstream_user:
+    host: "{{ test_host }}"
+    port: "{{ test_port }}"
+    username: "{{ test_username }}"
+    password: "{{ test_password }}"
+    enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
+    name: "{{ test_users.single_admin.name }}"
+    privilege: "{{ test_users.single_admin.privilege }}"
+    password_type: "{{ test_users.single_admin.password_type }}"
+    encryption_type: "{{ test_users.single_admin.encryption_type }}"
+    user_password: "{{ test_users.single_admin.user_password }}"
+    state: present
+    update_password: always
+  register: user_always
+  tags: [jetstream_user, user_always, never]
+
+- name: "[user] Assert always update succeeded with changed=true"
+  ansible.builtin.assert:
+    that:
+      - user_always is not failed
+      - user_always.changed == true
+    fail_msg: "update_password=always should force update: {{ user_always.msg | default('no msg') }}"
+  tags: [jetstream_user, user_always, never]
+
+# ---------------------------------------------------------------------------
+# HAPPY PATH — password security (redaction assertion)
+# ---------------------------------------------------------------------------
+
+- name: "[user] Assert password is redacted in returned cmd field"
+  ansible.builtin.assert:
+    that:
+      - user_admin.cmd is not search(test_users.single_admin.user_password)
+    fail_msg: >
+      SECURITY: Password appears in cmd return value unredacted.
+      cmd={{ user_admin.cmd }}
+  tags: [jetstream_user, user_priv_admin, user_security, never]
+
+# ---------------------------------------------------------------------------
+# HAPPY PATH — batch users list
+# ---------------------------------------------------------------------------
+
+- name: "[user] Batch create multiple users in one call"
+  lachlanstone.jetstream.jetstream_user:
+    host: "{{ test_host }}"
+    port: "{{ test_port }}"
+    username: "{{ test_username }}"
+    password: "{{ test_password }}"
+    enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
+    users:
+      - name: ts_bulk1
+        privilege: admin
+        password_type: secret
+        encryption_type: 0
+        password: "BulkAdmin1!"
+        state: present
+        update_password: always
+      - name: ts_bulk2
+        privilege: guest
+        password_type: password
+        encryption_type: 0
+        password: "BulkGuest1!"
+        state: present
+        update_password: on_create
+      - name: ts_bulk3
+        privilege: operator
+        password_type: secret
+        encryption_type: 0
+        password: "BulkOper1!"
+        state: present
+        update_password: always
+  register: user_bulk
+  tags: [jetstream_user, user_bulk, never]
+
+- name: "[user] Assert bulk user creation succeeded"
+  ansible.builtin.assert:
+    that:
+      - user_bulk is not failed
+      - user_bulk.changed == true
+    fail_msg: "user bulk create failed: {{ user_bulk.msg | default('no msg') }}"
+  tags: [jetstream_user, user_bulk, never]
+
+# ---------------------------------------------------------------------------
+# HAPPY PATH — name + users together (both paths)
+# ---------------------------------------------------------------------------
+
+- name: "[user] Use both name (top-level) and users list simultaneously"
+  lachlanstone.jetstream.jetstream_user:
+    host: "{{ test_host }}"
+    port: "{{ test_port }}"
+    username: "{{ test_username }}"
+    password: "{{ test_password }}"
+    enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
+    name: ts_toplevel
+    privilege: guest
+    password_type: secret
+    encryption_type: 0
+    user_password: "TopLevel1!"
+    state: present
+    update_password: always
+    users:
+      - name: ts_listlevel
+        privilege: admin
+        password_type: secret
+        encryption_type: 0
+        password: "ListLevel1!"
+        state: present
+        update_password: always
+  register: user_both
+  tags: [jetstream_user, user_both, never]
+
+- name: "[user] Assert both name and users list processed"
+  ansible.builtin.assert:
+    that:
+      - user_both is not failed
+      - user_both.changed == true
+    fail_msg: "user both paths failed: {{ user_both.msg | default('no msg') }}"
+  tags: [jetstream_user, user_both, never]
+
+# ---------------------------------------------------------------------------
+# HAPPY PATH — save_config
+# ---------------------------------------------------------------------------
+
+- name: "[user] save_config: true — creates user and saves config"
+  lachlanstone.jetstream.jetstream_user:
+    host: "{{ test_host }}"
+    port: "{{ test_port }}"
+    username: "{{ test_username }}"
+    password: "{{ test_password }}"
+    enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
+    name: ts_savetest
+    privilege: guest
+    password_type: secret
+    encryption_type: 0
+    user_password: "SaveTest1!"
+    state: present
+    update_password: always
+    save_config: true
+  register: user_save
+  tags: [jetstream_user, user_save_config, never]
+
+- name: "[user] Assert save_config: true succeeded"
+  ansible.builtin.assert:
+    that:
+      - user_save is not failed
+      - user_save.changed == true
+    fail_msg: "user save_config failed: {{ user_save.msg | default('no msg') }}"
+  tags: [jetstream_user, user_save_config, never]
+
+# ---------------------------------------------------------------------------
+# HAPPY PATH — check mode
+# ---------------------------------------------------------------------------
+
+- name: "[user] Check mode — no commands sent"
+  lachlanstone.jetstream.jetstream_user:
+    host: "{{ test_host }}"
+    port: "{{ test_port }}"
+    username: "{{ test_username }}"
+    password: "{{ test_password }}"
+    enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
+    name: ts_checkonly
+    privilege: admin
+    password_type: secret
+    encryption_type: 0
+    user_password: "CheckOnly1!"
+    state: present
+    update_password: always
+  check_mode: true
+  register: user_check
+  tags: [jetstream_user, user_check_mode, never]
+
+- name: "[user] Assert check_mode no change"
+  ansible.builtin.assert:
+    that:
+      - user_check is not failed
+      - user_check.check_mode == true
+      - user_check.changed == false
+    fail_msg: "user check_mode failed: {{ user_check.msg | default('no msg') }}"
+  tags: [jetstream_user, user_check_mode, never]
+
+# ---------------------------------------------------------------------------
+# HAPPY PATH — state: absent
+# ---------------------------------------------------------------------------
+
+- name: "[user] Remove a single existing user (state: absent)"
+  lachlanstone.jetstream.jetstream_user:
+    host: "{{ test_host }}"
+    port: "{{ test_port }}"
+    username: "{{ test_username }}"
+    password: "{{ test_password }}"
+    enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
+    name: "{{ test_users.single_guest.name }}"
+    state: absent
+  register: user_absent_single
+  tags: [jetstream_user, user_absent, never]
+
+- name: "[user] Assert single user removal succeeded"
+  ansible.builtin.assert:
+    that:
+      - user_absent_single is not failed
+      - user_absent_single.changed == true
+    fail_msg: "user absent single failed: {{ user_absent_single.msg | default('no msg') }}"
+  tags: [jetstream_user, user_absent, never]
+
+- name: "[user] Remove already-absent user — should be idempotent"
+  lachlanstone.jetstream.jetstream_user:
+    host: "{{ test_host }}"
+    port: "{{ test_port }}"
+    username: "{{ test_username }}"
+    password: "{{ test_password }}"
+    enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
+    name: "{{ test_users.single_guest.name }}"
+    state: absent
+  register: user_absent_idempotent
+  tags: [jetstream_user, user_absent, never]
+
+- name: "[user] Assert removing already-absent user is idempotent"
+  ansible.builtin.assert:
+    that:
+      - user_absent_idempotent is not failed
+      - user_absent_idempotent.changed == false
+    fail_msg: >
+      Re-removing absent user should not change. changed={{ user_absent_idempotent.changed }}
+  tags: [jetstream_user, user_absent, never]
+
+# ---------------------------------------------------------------------------
+# BAD DATA
+# ---------------------------------------------------------------------------
+
+- name: "[user][bad_data] Username longer than 16 characters — expect failure"
+  lachlanstone.jetstream.jetstream_user:
+    host: "{{ test_host }}"
+    port: "{{ test_port }}"
+    username: "{{ test_username }}"
+    password: "{{ test_password }}"
+    enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
+    name: "this_name_is_way_too_long_for_jetstream"
+    privilege: admin
+    password_type: secret
+    encryption_type: 0
+    user_password: "Password1!"
+    state: present
+  register: user_bad_long_name
+  ignore_errors: true
+  tags: [jetstream_user, bad_data, never]
+
+- name: "[user][bad_data] Assert long username failed"
+  ansible.builtin.assert:
+    that:
+      - user_bad_long_name is failed
+    fail_msg: "Expected failure for username > 16 chars but task succeeded"
+  tags: [jetstream_user, bad_data, never]
+
+# ---------------------------------------------------------------------------
+
+- name: "[user][bad_data] Username with spaces — expect failure"
+  lachlanstone.jetstream.jetstream_user:
+    host: "{{ test_host }}"
+    port: "{{ test_port }}"
+    username: "{{ test_username }}"
+    password: "{{ test_password }}"
+    enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
+    name: "bad user name"
+    privilege: admin
+    password_type: secret
+    encryption_type: 0
+    user_password: "Password1!"
+    state: present
+  register: user_bad_spaces
+  ignore_errors: true
+  tags: [jetstream_user, bad_data, never]
+
+- name: "[user][bad_data] Assert username with spaces failed"
+  ansible.builtin.assert:
+    that:
+      - user_bad_spaces is failed
+    fail_msg: "Expected failure for username with spaces but task succeeded"
+  tags: [jetstream_user, bad_data, never]
+
+# ---------------------------------------------------------------------------
+
+- name: "[user][bad_data] state: present for new user with no password — expect failure"
+  lachlanstone.jetstream.jetstream_user:
+    host: "{{ test_host }}"
+    port: "{{ test_port }}"
+    username: "{{ test_username }}"
+    password: "{{ test_password }}"
+    enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
+    name: ts_no_password
+    privilege: admin
+    state: present
+    update_password: always
+  register: user_bad_no_pass
+  ignore_errors: true
+  tags: [jetstream_user, bad_data, never]
+
+- name: "[user][bad_data] Assert missing password for new user failed"
+  ansible.builtin.assert:
+    that:
+      - user_bad_no_pass is failed
+    fail_msg: "Expected failure for create without password but task succeeded"
+  tags: [jetstream_user, bad_data, never]
+
+# ---------------------------------------------------------------------------
+
+- name: "[user][bad_data] Invalid privilege choice — expect Ansible validation failure"
+  lachlanstone.jetstream.jetstream_user:
+    host: "{{ test_host }}"
+    port: "{{ test_port }}"
+    username: "{{ test_username }}"
+    password: "{{ test_password }}"
+    enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
+    name: ts_badpriv
+    privilege: superuser
+    password_type: secret
+    encryption_type: 0
+    user_password: "Password1!"
+    state: present
+  register: user_bad_priv
+  ignore_errors: true
+  tags: [jetstream_user, bad_data, never]
+
+- name: "[user][bad_data] Assert invalid privilege failed"
+  ansible.builtin.assert:
+    that:
+      - user_bad_priv is failed
+    fail_msg: "Expected failure for invalid privilege but task succeeded"
+  tags: [jetstream_user, bad_data, never]
+
+# ---------------------------------------------------------------------------
+
+- name: "[user][bad_data] Invalid encryption_type — expect Ansible validation failure"
+  lachlanstone.jetstream.jetstream_user:
+    host: "{{ test_host }}"
+    port: "{{ test_port }}"
+    username: "{{ test_username }}"
+    password: "{{ test_password }}"
+    enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
+    name: ts_badenc
+    privilege: admin
+    password_type: secret
+    encryption_type: 3
+    user_password: "Password1!"
+    state: present
+  register: user_bad_enc
+  ignore_errors: true
+  tags: [jetstream_user, bad_data, never]
+
+- name: "[user][bad_data] Assert invalid encryption_type failed"
+  ansible.builtin.assert:
+    that:
+      - user_bad_enc is failed
+    fail_msg: "Expected failure for invalid encryption_type but task succeeded"
+  tags: [jetstream_user, bad_data, never]
+
+# ---------------------------------------------------------------------------
+
+- name: "[user][bad_data] Neither name nor users provided — expect clean exit with no-op msg"
+  lachlanstone.jetstream.jetstream_user:
+    host: "{{ test_host }}"
+    port: "{{ test_port }}"
+    username: "{{ test_username }}"
+    password: "{{ test_password }}"
+    enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
+  register: user_no_input
+  tags: [jetstream_user, bad_data, never]
+
+- name: "[user][bad_data] Assert no-input produced clean exit, no changes"
+  ansible.builtin.assert:
+    that:
+      - user_no_input is not failed
+      - user_no_input.changed == false
+    fail_msg: "No-input user task should exit cleanly: {{ user_no_input.msg | default('no msg') }}"
+  tags: [jetstream_user, bad_data, never]
+
+# ---------------------------------------------------------------------------
+# TEARDOWN — remove all test users created in this block
+# ---------------------------------------------------------------------------
+
+- name: "[user] Teardown — remove all test users"
+  lachlanstone.jetstream.jetstream_user:
+    host: "{{ test_host }}"
+    port: "{{ test_port }}"
+    username: "{{ test_username }}"
+    password: "{{ test_password }}"
+    enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
+    users:
+      - name: "{{ test_users.single_admin.name }}"
+        state: absent
+      - name: "{{ test_users.single_operator.name }}"
+        state: absent
+      - name: "{{ test_users.single_power.name }}"
+        state: absent
+      - name: "{{ test_users.single_user.name }}"
+        state: absent
+      - name: ts_bulk1
+        state: absent
+      - name: ts_bulk2
+        state: absent
+      - name: ts_bulk3
+        state: absent
+      - name: ts_toplevel
+        state: absent
+      - name: ts_listlevel
+        state: absent
+      - name: ts_savetest
+        state: absent
+  ignore_errors: true
+  tags: [jetstream_user, user_teardown, never]

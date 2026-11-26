@@ -13,6 +13,7 @@
       username: "{{ ssh_username }}"
       password: "{{ ssh_password }}"
       enable_password: "{{ ssh_enable_password }}"
+      read_timeout: 60
 
   tasks:
 
