@@ -1,0 +1,11 @@
+---
+galaxy_info:
+  role_name: jetstream_tests
+  author: lachlanstone
+  description: Integration tests for the lachlanstone.jetstream Ansible collection
+  min_ansible_version: "2.14"
+  platforms:
+    - name: Generic
+      versions:
+        - all
+dependencies: []

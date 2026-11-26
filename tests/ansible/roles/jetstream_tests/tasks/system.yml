@@ -1,0 +1,500 @@
+---
+# =============================================================================
+# MODULE: jetstream_system
+# Tests: hostname/location/contact, DNS (primary only, primary+secondary),
+#        LLDP (enable/disable), NTP (full valid, 5-server), combined,
+#        check_mode, idempotency.
+# Bad data: dns.secondary without primary, NTP missing fields,
+#           NTP type != "ntp", only 1 NTP server.
+# =============================================================================
+
+# ---------------------------------------------------------------------------
+# HAPPY PATH — system identity
+# ---------------------------------------------------------------------------
+
+- name: "[system] Set hostname only"
+  lachlanstone.jetstream.jetstream_system:
+    host: "{{ test_host }}"
+    port: "{{ test_port }}"
+    username: "{{ test_username }}"
+    password: "{{ test_password }}"
+    enable_password: "{{ test_enable_password }}"
+    system:
+      hostname: "{{ test_hostname }}"
+  register: sys_hostname
+  tags: [jetstream_system, sys_hostname, never]
+
+- name: "[system] Assert hostname set succeeded"
+  ansible.builtin.assert:
+    that:
+      - sys_hostname is not failed
+      - sys_hostname.changed == true
+    fail_msg: "system hostname failed: {{ sys_hostname.msg | default('no msg') }}"
+  tags: [jetstream_system, sys_hostname, never]
+
+# ---------------------------------------------------------------------------
+
+- name: "[system] Set location only"
+  lachlanstone.jetstream.jetstream_system:
+    host: "{{ test_host }}"
+    port: "{{ test_port }}"
+    username: "{{ test_username }}"
+    password: "{{ test_password }}"
+    enable_password: "{{ test_enable_password }}"
+    system:
+      location: "{{ test_location }}"
+  register: sys_location
+  tags: [jetstream_system, sys_location, never]
+
+- name: "[system] Assert location set succeeded"
+  ansible.builtin.assert:
+    that:
+      - sys_location is not failed
+      - sys_location.changed == true
+    fail_msg: "system location failed: {{ sys_location.msg | default('no msg') }}"
+  tags: [jetstream_system, sys_location, never]
+
+# ---------------------------------------------------------------------------
+
+- name: "[system] Set contact only"
+  lachlanstone.jetstream.jetstream_system:
+    host: "{{ test_host }}"
+    port: "{{ test_port }}"
+    username: "{{ test_username }}"
+    password: "{{ test_password }}"
+    enable_password: "{{ test_enable_password }}"
+    system:
+      contact: "{{ test_contact }}"
+  register: sys_contact
+  tags: [jetstream_system, sys_contact, never]
+
+- name: "[system] Assert contact set succeeded"
+  ansible.builtin.assert:
+    that:
+      - sys_contact is not failed
+      - sys_contact.changed == true
+    fail_msg: "system contact failed: {{ sys_contact.msg | default('no msg') }}"
+  tags: [jetstream_system, sys_contact, never]
+
+# ---------------------------------------------------------------------------
+
+- name: "[system] Set hostname, location, and contact together"
+  lachlanstone.jetstream.jetstream_system:
+    host: "{{ test_host }}"
+    port: "{{ test_port }}"
+    username: "{{ test_username }}"
+    password: "{{ test_password }}"
+    enable_password: "{{ test_enable_password }}"
+    system:
+      hostname: "{{ test_hostname }}"
+      location: "{{ test_location }}"
+      contact: "{{ test_contact }}"
+  register: sys_identity_all
+  tags: [jetstream_system, sys_identity_all, never]
+
+- name: "[system] Assert combined identity config succeeded"
+  ansible.builtin.assert:
+    that:
+      - sys_identity_all is not failed
+    fail_msg: "system identity all failed: {{ sys_identity_all.msg | default('no msg') }}"
+  tags: [jetstream_system, sys_identity_all, never]
+
+# ---------------------------------------------------------------------------
+
+- name: "[system] Idempotency — set same hostname again"
+  lachlanstone.jetstream.jetstream_system:
+    host: "{{ test_host }}"
+    port: "{{ test_port }}"
+    username: "{{ test_username }}"
+    password: "{{ test_password }}"
+    enable_password: "{{ test_enable_password }}"
+    system:
+      hostname: "{{ test_hostname }}"
+  register: sys_idempotent
+  tags: [jetstream_system, sys_idempotent, never]
+
+- name: "[system] Assert idempotent run did not change (hostname already set)"
+  ansible.builtin.assert:
+    that:
+      - sys_idempotent is not failed
+      - sys_idempotent.changed == false
+    fail_msg: >
+      Idempotency failed: module reported changed=true for already-set hostname.
+      Result: {{ sys_idempotent | to_nice_yaml }}
+  tags: [jetstream_system, sys_idempotent, never]
+
+# ---------------------------------------------------------------------------
+# HAPPY PATH — DNS
+# ---------------------------------------------------------------------------
+
+- name: "[system] Configure DNS primary only"
+  lachlanstone.jetstream.jetstream_system:
+    host: "{{ test_host }}"
+    port: "{{ test_port }}"
+    username: "{{ test_username }}"
+    password: "{{ test_password }}"
+    enable_password: "{{ test_enable_password }}"
+    dns:
+      primary: "{{ test_dns_primary }}"
+  register: sys_dns_primary
+  tags: [jetstream_system, sys_dns, never]
+
+- name: "[system] Assert DNS primary only succeeded"
+  ansible.builtin.assert:
+    that:
+      - sys_dns_primary is not failed
+      - sys_dns_primary.changed == true
+    fail_msg: "system dns primary failed: {{ sys_dns_primary.msg | default('no msg') }}"
+  tags: [jetstream_system, sys_dns, never]
+
+# ---------------------------------------------------------------------------
+
+- name: "[system] Configure DNS primary + secondary"
+  lachlanstone.jetstream.jetstream_system:
+    host: "{{ test_host }}"
+    port: "{{ test_port }}"
+    username: "{{ test_username }}"
+    password: "{{ test_password }}"
+    enable_password: "{{ test_enable_password }}"
+    dns:
+      primary: "{{ test_dns_primary }}"
+      secondary: "{{ test_dns_secondary }}"
+  register: sys_dns_both
+  tags: [jetstream_system, sys_dns, never]
+
+- name: "[system] Assert DNS primary + secondary succeeded"
+  ansible.builtin.assert:
+    that:
+      - sys_dns_both is not failed
+      - sys_dns_both.changed == true
+    fail_msg: "system dns both failed: {{ sys_dns_both.msg | default('no msg') }}"
+  tags: [jetstream_system, sys_dns, never]
+
+# ---------------------------------------------------------------------------
+# HAPPY PATH — LLDP
+# ---------------------------------------------------------------------------
+
+- name: "[system] Enable LLDP globally"
+  lachlanstone.jetstream.jetstream_system:
+    host: "{{ test_host }}"
+    port: "{{ test_port }}"
+    username: "{{ test_username }}"
+    password: "{{ test_password }}"
+    enable_password: "{{ test_enable_password }}"
+    lldp:
+      enabled: true
+  register: sys_lldp_on
+  tags: [jetstream_system, sys_lldp, never]
+
+- name: "[system] Assert LLDP enable succeeded"
+  ansible.builtin.assert:
+    that:
+      - sys_lldp_on is not failed
+      - sys_lldp_on.changed == true
+    fail_msg: "system lldp enable failed: {{ sys_lldp_on.msg | default('no msg') }}"
+  tags: [jetstream_system, sys_lldp, never]
+
+- name: "[system] Disable LLDP globally"
+  lachlanstone.jetstream.jetstream_system:
+    host: "{{ test_host }}"
+    port: "{{ test_port }}"
+    username: "{{ test_username }}"
+    password: "{{ test_password }}"
+    enable_password: "{{ test_enable_password }}"
+    lldp:
+      enabled: false
+  register: sys_lldp_off
+  tags: [jetstream_system, sys_lldp, never]
+
+- name: "[system] Assert LLDP disable succeeded"
+  ansible.builtin.assert:
+    that:
+      - sys_lldp_off is not failed
+      - sys_lldp_off.changed == true
+    fail_msg: "system lldp disable failed: {{ sys_lldp_off.msg | default('no msg') }}"
+  tags: [jetstream_system, sys_lldp, never]
+
+# Re-enable so the switch is left in a known good state
+- name: "[system] Re-enable LLDP after disable test"
+  lachlanstone.jetstream.jetstream_system:
+    host: "{{ test_host }}"
+    port: "{{ test_port }}"
+    username: "{{ test_username }}"
+    password: "{{ test_password }}"
+    enable_password: "{{ test_enable_password }}"
+    lldp:
+      enabled: true
+  tags: [jetstream_system, sys_lldp, never]
+
+# ---------------------------------------------------------------------------
+# HAPPY PATH — NTP
+# ---------------------------------------------------------------------------
+
+- name: "[system] Configure NTP with 2 servers (minimum)"
+  lachlanstone.jetstream.jetstream_system:
+    host: "{{ test_host }}"
+    port: "{{ test_port }}"
+    username: "{{ test_username }}"
+    password: "{{ test_password }}"
+    enable_password: "{{ test_enable_password }}"
+    ntp:
+      type: ntp
+      ntp_utc: "{{ test_ntp_utc }}"
+      ntp_servers: "{{ test_ntp_servers }}"
+      ntp_fetch_time: "{{ test_ntp_fetch_time }}"
+  register: sys_ntp
+  tags: [jetstream_system, sys_ntp, never]
+
+- name: "[system] Assert NTP config with 2 servers succeeded"
+  ansible.builtin.assert:
+    that:
+      - sys_ntp is not failed
+      - sys_ntp.changed == true
+    fail_msg: "system ntp failed: {{ sys_ntp.msg | default('no msg') }}"
+  tags: [jetstream_system, sys_ntp, never]
+
+# ---------------------------------------------------------------------------
+
+- name: "[system] Configure NTP with 5 servers (maximum)"
+  lachlanstone.jetstream.jetstream_system:
+    host: "{{ test_host }}"
+    port: "{{ test_port }}"
+    username: "{{ test_username }}"
+    password: "{{ test_password }}"
+    enable_password: "{{ test_enable_password }}"
+    ntp:
+      type: ntp
+      ntp_utc: "{{ test_ntp_utc }}"
+      ntp_servers:
+        - "192.0.2.1"
+        - "192.0.2.2"
+        - "192.0.2.3"
+        - "192.0.2.4"
+        - "192.0.2.5"
+      ntp_fetch_time: 30
+  register: sys_ntp_5
+  tags: [jetstream_system, sys_ntp_5servers, never]
+
+- name: "[system] Assert NTP with 5 servers succeeded"
+  ansible.builtin.assert:
+    that:
+      - sys_ntp_5 is not failed
+      - sys_ntp_5.changed == true
+    fail_msg: "system ntp 5 servers failed: {{ sys_ntp_5.msg | default('no msg') }}"
+  tags: [jetstream_system, sys_ntp_5servers, never]
+
+# ---------------------------------------------------------------------------
+# HAPPY PATH — All params combined
+# ---------------------------------------------------------------------------
+
+- name: "[system] Configure all system params together"
+  lachlanstone.jetstream.jetstream_system:
+    host: "{{ test_host }}"
+    port: "{{ test_port }}"
+    username: "{{ test_username }}"
+    password: "{{ test_password }}"
+    enable_password: "{{ test_enable_password }}"
+    system:
+      hostname: "{{ test_hostname }}"
+      location: "{{ test_location }}"
+      contact: "{{ test_contact }}"
+    lldp:
+      enabled: true
+    dns:
+      primary: "{{ test_dns_primary }}"
+      secondary: "{{ test_dns_secondary }}"
+    ntp:
+      type: ntp
+      ntp_utc: "{{ test_ntp_utc }}"
+      ntp_servers: "{{ test_ntp_servers }}"
+      ntp_fetch_time: "{{ test_ntp_fetch_time }}"
+  register: sys_all
+  tags: [jetstream_system, sys_all, never]
+
+- name: "[system] Assert combined system config succeeded"
+  ansible.builtin.assert:
+    that:
+      - sys_all is not failed
+    fail_msg: "system all params failed: {{ sys_all.msg | default('no msg') }}"
+  tags: [jetstream_system, sys_all, never]
+
+# ---------------------------------------------------------------------------
+# HAPPY PATH — Check mode
+# ---------------------------------------------------------------------------
+
+- name: "[system] Check mode — verify no commands sent"
+  lachlanstone.jetstream.jetstream_system:
+    host: "{{ test_host }}"
+    port: "{{ test_port }}"
+    username: "{{ test_username }}"
+    password: "{{ test_password }}"
+    enable_password: "{{ test_enable_password }}"
+    system:
+      hostname: "new-hostname-check"
+      location: "Check Location"
+    dns:
+      primary: "1.2.3.4"
+    lldp:
+      enabled: false
+  check_mode: true
+  register: sys_check
+  tags: [jetstream_system, sys_check_mode, never]
+
+- name: "[system] Assert check_mode did not apply changes"
+  ansible.builtin.assert:
+    that:
+      - sys_check is not failed
+      - sys_check.check_mode == true
+      - sys_check.changed == false
+    fail_msg: "system check_mode failed: {{ sys_check.msg | default('no msg') }}"
+  tags: [jetstream_system, sys_check_mode, never]
+
+# ---------------------------------------------------------------------------
+# BAD DATA
+# ---------------------------------------------------------------------------
+
+- name: "[system][bad_data] DNS secondary without primary — expect soft failure in steps"
+  lachlanstone.jetstream.jetstream_system:
+    host: "{{ test_host }}"
+    port: "{{ test_port }}"
+    username: "{{ test_username }}"
+    password: "{{ test_password }}"
+    enable_password: "{{ test_enable_password }}"
+    dns:
+      secondary: "8.8.4.4"
+  register: sys_bad_dns
+  ignore_errors: true
+  tags: [jetstream_system, bad_data, never]
+
+- name: "[system][bad_data] Assert secondary-only DNS produced failure"
+  ansible.builtin.assert:
+    that:
+      - sys_bad_dns is failed
+    fail_msg: "Expected failure for DNS secondary without primary but task succeeded"
+  tags: [jetstream_system, bad_data, never]
+
+# ---------------------------------------------------------------------------
+
+- name: "[system][bad_data] NTP type != 'ntp' — silently skipped, not an error"
+  lachlanstone.jetstream.jetstream_system:
+    host: "{{ test_host }}"
+    port: "{{ test_port }}"
+    username: "{{ test_username }}"
+    password: "{{ test_password }}"
+    enable_password: "{{ test_enable_password }}"
+    ntp:
+      type: manual
+      ntp_utc: "+00:00"
+      ntp_servers:
+        - "192.0.2.1"
+        - "192.0.2.2"
+      ntp_fetch_time: 60
+  register: sys_ntp_bad_type
+  tags: [jetstream_system, bad_data, never]
+
+- name: "[system][bad_data] Assert NTP with wrong type did not fail (silently skipped)"
+  ansible.builtin.assert:
+    that:
+      - sys_ntp_bad_type is not failed
+      - sys_ntp_bad_type.changed == false
+    fail_msg: "NTP bad type should be silently skipped but changed=true or failed"
+  tags: [jetstream_system, bad_data, never]
+
+# ---------------------------------------------------------------------------
+
+- name: "[system][bad_data] NTP type=ntp but missing ntp_utc — expect step failure"
+  lachlanstone.jetstream.jetstream_system:
+    host: "{{ test_host }}"
+    port: "{{ test_port }}"
+    username: "{{ test_username }}"
+    password: "{{ test_password }}"
+    enable_password: "{{ test_enable_password }}"
+    ntp:
+      type: ntp
+      ntp_servers:
+        - "192.0.2.1"
+        - "192.0.2.2"
+      ntp_fetch_time: 60
+  register: sys_ntp_no_utc
+  ignore_errors: true
+  tags: [jetstream_system, bad_data, never]
+
+- name: "[system][bad_data] Assert missing ntp_utc caused failure"
+  ansible.builtin.assert:
+    that:
+      - sys_ntp_no_utc is failed
+    fail_msg: "Expected failure for NTP without ntp_utc but task succeeded"
+  tags: [jetstream_system, bad_data, never]
+
+# ---------------------------------------------------------------------------
+
+- name: "[system][bad_data] NTP type=ntp with only 1 server — expect failure (min 2)"
+  lachlanstone.jetstream.jetstream_system:
+    host: "{{ test_host }}"
+    port: "{{ test_port }}"
+    username: "{{ test_username }}"
+    password: "{{ test_password }}"
+    enable_password: "{{ test_enable_password }}"
+    ntp:
+      type: ntp
+      ntp_utc: "+00:00"
+      ntp_servers:
+        - "192.0.2.1"
+      ntp_fetch_time: 60
+  register: sys_ntp_one_server
+  ignore_errors: true
+  tags: [jetstream_system, bad_data, never]
+
+- name: "[system][bad_data] Assert 1-server NTP caused failure"
+  ansible.builtin.assert:
+    that:
+      - sys_ntp_one_server is failed
+    fail_msg: "Expected failure for NTP with only 1 server but task succeeded"
+  tags: [jetstream_system, bad_data, never]
+
+# ---------------------------------------------------------------------------
+
+- name: "[system][bad_data] NTP type=ntp missing ntp_fetch_time — expect failure"
+  lachlanstone.jetstream.jetstream_system:
+    host: "{{ test_host }}"
+    port: "{{ test_port }}"
+    username: "{{ test_username }}"
+    password: "{{ test_password }}"
+    enable_password: "{{ test_enable_password }}"
+    ntp:
+      type: ntp
+      ntp_utc: "+00:00"
+      ntp_servers:
+        - "192.0.2.1"
+        - "192.0.2.2"
+  register: sys_ntp_no_fetch
+  ignore_errors: true
+  tags: [jetstream_system, bad_data, never]
+
+- name: "[system][bad_data] Assert missing ntp_fetch_time caused failure"
+  ansible.builtin.assert:
+    that:
+      - sys_ntp_no_fetch is failed
+    fail_msg: "Expected failure for NTP without ntp_fetch_time but task succeeded"
+  tags: [jetstream_system, bad_data, never]
+
+# ---------------------------------------------------------------------------
+
+- name: "[system][bad_data] Empty system dict — no commands, clean exit"
+  lachlanstone.jetstream.jetstream_system:
+    host: "{{ test_host }}"
+    port: "{{ test_port }}"
+    username: "{{ test_username }}"
+    password: "{{ test_password }}"
+    enable_password: "{{ test_enable_password }}"
+    system: {}
+  register: sys_empty
+  tags: [jetstream_system, bad_data, never]
+
+- name: "[system][bad_data] Assert empty system dict exited cleanly"
+  ansible.builtin.assert:
+    that:
+      - sys_empty is not failed
+      - sys_empty.changed == false
+    fail_msg: "Empty system dict should produce no changes: {{ sys_empty.msg | default('no msg') }}"
+  tags: [jetstream_system, bad_data, never]

@@ -1,0 +1,121 @@
+---
+# =============================================================================
+# jetstream_tests role — default test fixtures
+#
+# Override any of these in group_vars, host_vars, or the playbook vars block
+# to match your lab switch.
+# =============================================================================
+
+# ---------------------------------------------------------------------------
+# Connection defaults (can be overridden per host from group_vars/switch.yml)
+# ---------------------------------------------------------------------------
+test_host: "{{ switch_host | default('10.10.10.50') }}"
+test_port: "{{ ssh_port | default(22) }}"
+test_username: "{{ ssh_username | default('admin') }}"
+test_password: "{{ ssh_password | default('password') }}"
+test_enable_password: "{{ ssh_enable_password | default('password') }}"
+
+# ---------------------------------------------------------------------------
+# jetstream_system fixtures
+# ---------------------------------------------------------------------------
+test_hostname: "test-switch-01"
+test_location: "Lab Room"
+test_contact: "test@example.com"
+test_dns_primary: "8.8.8.8"
+test_dns_secondary: "1.1.1.1"
+test_ntp_utc: "+00:00"
+test_ntp_servers:
+  - "192.0.2.123"
+  - "198.51.100.123"
+test_ntp_fetch_time: 60
+
+# ---------------------------------------------------------------------------
+# jetstream_vlans fixtures
+# ---------------------------------------------------------------------------
+test_vlans:
+  - vlan_id: 910
+    name: TEST_MGMT
+  - vlan_id: 920
+    name: TEST_SERVERS
+  - vlan_id: 930
+    name: TEST_PRINTERS
+
+test_vlan_static_ip:
+  vlan_id: 910
+  name: TEST_MGMT
+  ip_address: 192.168.91.1
+  subnet_mask: 255.255.255.0
+
+test_vlan_dhcp:
+  vlan_id: 920
+  name: TEST_SERVERS
+  ip_dhcp: true
+
+# ---------------------------------------------------------------------------
+# jetstream_interfaces fixtures
+#
+# Adjust port names to match physical ports that are safe to toggle in your lab.
+# ---------------------------------------------------------------------------
+test_iface_primary: "1/0/1"
+test_iface_port_type: "two-gigabitEthernet"
+test_iface_secondary: "1/0/3"
+test_iface_tertiary: "1/0/4"
+
+# ---------------------------------------------------------------------------
+# jetstream_user fixtures
+# ---------------------------------------------------------------------------
+test_users:
+  single_admin:
+    name: "ts_admin"
+    privilege: "admin"
+    password_type: "secret"
+    encryption_type: 0
+    user_password: "TestAdmin1!"
+
+  single_guest:
+    name: "ts_guest"
+    privilege: "guest"
+    password_type: "password"
+    encryption_type: 0
+    user_password: "TestGuest1!"
+
+  single_operator:
+    name: "ts_operator"
+    privilege: "operator"
+    password_type: "secret"
+    encryption_type: 0
+    user_password: "TestOper1!"
+
+  single_power:
+    name: "ts_power"
+    privilege: "power_user"
+    password_type: "secret"
+    encryption_type: 0
+    user_password: "TestPower1!"
+
+  single_user:
+    name: "ts_user"
+    privilege: "user"
+    password_type: "secret"
+    encryption_type: 0
+    user_password: "TestUser1!"
+
+# ---------------------------------------------------------------------------
+# jetstream_acls fixtures
+# ---------------------------------------------------------------------------
+# ACL IDs are chosen high to avoid colliding with production ACLs
+test_acl_base_id: "1900"
+test_acl_ids:
+  combined_tcp:  "1901"
+  ip_number:     "1902"
+  protocols:     "1903"
+  misc_proto:    "1904"
+  dport_mask:    "1905"
+  check_mode:    "1999"
+
+test_acl_vid_map:
+  "1901": 910
+  "1902": 920
+  "1903": 930
+  "1904": 910
+  "1905": 920

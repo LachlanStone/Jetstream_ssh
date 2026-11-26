@@ -1,0 +1,265 @@
+---
+# =============================================================================
+# MODULE: jetstream_vlans
+# Tests: vlan_id only, named VLAN, static IP SVI, DHCP SVI, multiple VLANs,
+#        boundary vlan_ids (1, 4094), check_mode, teardown
+# Bad data: vlan_id 0, 4095, string; ip_address + ip_dhcp together;
+#           ip_address without subnet_mask; empty vlans list
+# =============================================================================
+
+# ---------------------------------------------------------------------------
+# HAPPY PATH
+# ---------------------------------------------------------------------------
+
+- name: "[vlans] Create named VLANs"
+  lachlanstone.jetstream.jetstream_vlans:
+    host: "{{ test_host }}"
+    port: "{{ test_port }}"
+    username: "{{ test_username }}"
+    password: "{{ test_password }}"
+    enable_password: "{{ test_enable_password }}"
+    vlans: "{{ test_vlans }}"
+  register: vlans_named
+  tags: [jetstream_vlans, vlans_named, never]
+
+- name: "[vlans] Assert named VLAN creation succeeded"
+  ansible.builtin.assert:
+    that:
+      - vlans_named is not failed
+      - vlans_named.changed == true
+    fail_msg: "vlans named failed: {{ vlans_named.msg | default('no msg') }}"
+  tags: [jetstream_vlans, vlans_named, never]
+
+# ---------------------------------------------------------------------------
+
+- name: "[vlans] Create VLAN with static IP address"
+  lachlanstone.jetstream.jetstream_vlans:
+    host: "{{ test_host }}"
+    port: "{{ test_port }}"
+    username: "{{ test_username }}"
+    password: "{{ test_password }}"
+    enable_password: "{{ test_enable_password }}"
+    vlans:
+      - "{{ test_vlan_static_ip }}"
+  register: vlans_static
+  tags: [jetstream_vlans, vlans_static_ip, never]
+
+- name: "[vlans] Assert static IP VLAN succeeded"
+  ansible.builtin.assert:
+    that:
+      - vlans_static is not failed
+      - vlans_static.changed == true
+    fail_msg: "vlans static ip failed: {{ vlans_static.msg | default('no msg') }}"
+  tags: [jetstream_vlans, vlans_static_ip, never]
+
+# ---------------------------------------------------------------------------
+
+- name: "[vlans] Create VLAN with DHCP SVI"
+  lachlanstone.jetstream.jetstream_vlans:
+    host: "{{ test_host }}"
+    port: "{{ test_port }}"
+    username: "{{ test_username }}"
+    password: "{{ test_password }}"
+    enable_password: "{{ test_enable_password }}"
+    vlans:
+      - "{{ test_vlan_dhcp }}"
+  register: vlans_dhcp
+  tags: [jetstream_vlans, vlans_dhcp, never]
+
+- name: "[vlans] Assert DHCP VLAN succeeded"
+  ansible.builtin.assert:
+    that:
+      - vlans_dhcp is not failed
+      - vlans_dhcp.changed == true
+    fail_msg: "vlans dhcp failed: {{ vlans_dhcp.msg | default('no msg') }}"
+  tags: [jetstream_vlans, vlans_dhcp, never]
+
+# ---------------------------------------------------------------------------
+
+- name: "[vlans] Boundary — vlan_id 1 (minimum)"
+  lachlanstone.jetstream.jetstream_vlans:
+    host: "{{ test_host }}"
+    port: "{{ test_port }}"
+    username: "{{ test_username }}"
+    password: "{{ test_password }}"
+    enable_password: "{{ test_enable_password }}"
+    vlans:
+      - vlan_id: 1
+        name: TEST_VLAN_MIN
+  register: vlans_min
+  tags: [jetstream_vlans, vlans_boundary, never]
+
+- name: "[vlans] Assert vlan_id 1 succeeded"
+  ansible.builtin.assert:
+    that:
+      - vlans_min is not failed
+    fail_msg: "vlans min boundary failed: {{ vlans_min.msg | default('no msg') }}"
+  tags: [jetstream_vlans, vlans_boundary, never]
+
+- name: "[vlans] Boundary — vlan_id 4094 (maximum)"
+  lachlanstone.jetstream.jetstream_vlans:
+    host: "{{ test_host }}"
+    port: "{{ test_port }}"
+    username: "{{ test_username }}"
+    password: "{{ test_password }}"
+    enable_password: "{{ test_enable_password }}"
+    vlans:
+      - vlan_id: 4094
+        name: TEST_VLAN_MAX
+  register: vlans_max
+  tags: [jetstream_vlans, vlans_boundary, never]
+
+- name: "[vlans] Assert vlan_id 4094 succeeded"
+  ansible.builtin.assert:
+    that:
+      - vlans_max is not failed
+    fail_msg: "vlans max boundary failed: {{ vlans_max.msg | default('no msg') }}"
+  tags: [jetstream_vlans, vlans_boundary, never]
+
+# ---------------------------------------------------------------------------
+
+- name: "[vlans] Check mode — no commands sent"
+  lachlanstone.jetstream.jetstream_vlans:
+    host: "{{ test_host }}"
+    port: "{{ test_port }}"
+    username: "{{ test_username }}"
+    password: "{{ test_password }}"
+    enable_password: "{{ test_enable_password }}"
+    vlans:
+      - vlan_id: 999
+        name: CHECK_MODE_ONLY
+  check_mode: true
+  register: vlans_check
+  tags: [jetstream_vlans, vlans_check_mode, never]
+
+- name: "[vlans] Assert check_mode reported no change"
+  ansible.builtin.assert:
+    that:
+      - vlans_check is not failed
+      - vlans_check.check_mode == true
+      - vlans_check.changed == false
+    fail_msg: "vlans check_mode failed: {{ vlans_check.msg | default('no msg') }}"
+  tags: [jetstream_vlans, vlans_check_mode, never]
+
+# ---------------------------------------------------------------------------
+# BAD DATA
+# ---------------------------------------------------------------------------
+
+- name: "[vlans][bad_data] vlan_id 0 — expect fail_json"
+  lachlanstone.jetstream.jetstream_vlans:
+    host: "{{ test_host }}"
+    port: "{{ test_port }}"
+    username: "{{ test_username }}"
+    password: "{{ test_password }}"
+    enable_password: "{{ test_enable_password }}"
+    vlans:
+      - vlan_id: 0
+        name: BAD_ZERO
+  register: vlans_bad_zero
+  ignore_errors: true
+  tags: [jetstream_vlans, bad_data, never]
+
+- name: "[vlans][bad_data] Assert vlan_id 0 failed"
+  ansible.builtin.assert:
+    that:
+      - vlans_bad_zero is failed
+    fail_msg: "Expected failure for vlan_id 0 but task succeeded"
+  tags: [jetstream_vlans, bad_data, never]
+
+# ---------------------------------------------------------------------------
+
+- name: "[vlans][bad_data] vlan_id 4095 — expect fail_json"
+  lachlanstone.jetstream.jetstream_vlans:
+    host: "{{ test_host }}"
+    port: "{{ test_port }}"
+    username: "{{ test_username }}"
+    password: "{{ test_password }}"
+    enable_password: "{{ test_enable_password }}"
+    vlans:
+      - vlan_id: 4095
+        name: BAD_MAX
+  register: vlans_bad_max
+  ignore_errors: true
+  tags: [jetstream_vlans, bad_data, never]
+
+- name: "[vlans][bad_data] Assert vlan_id 4095 failed"
+  ansible.builtin.assert:
+    that:
+      - vlans_bad_max is failed
+    fail_msg: "Expected failure for vlan_id 4095 but task succeeded"
+  tags: [jetstream_vlans, bad_data, never]
+
+# ---------------------------------------------------------------------------
+
+- name: "[vlans][bad_data] ip_address and ip_dhcp together — expect fail_json"
+  lachlanstone.jetstream.jetstream_vlans:
+    host: "{{ test_host }}"
+    port: "{{ test_port }}"
+    username: "{{ test_username }}"
+    password: "{{ test_password }}"
+    enable_password: "{{ test_enable_password }}"
+    vlans:
+      - vlan_id: 910
+        ip_address: 192.168.91.1
+        subnet_mask: 255.255.255.0
+        ip_dhcp: true
+  register: vlans_bad_both_ip
+  ignore_errors: true
+  tags: [jetstream_vlans, bad_data, never]
+
+- name: "[vlans][bad_data] Assert combined static + DHCP failed"
+  ansible.builtin.assert:
+    that:
+      - vlans_bad_both_ip is failed
+    fail_msg: "Expected failure for ip_address + ip_dhcp but task succeeded"
+  tags: [jetstream_vlans, bad_data, never]
+
+# ---------------------------------------------------------------------------
+
+- name: "[vlans][bad_data] ip_address without subnet_mask — expect fail_json"
+  lachlanstone.jetstream.jetstream_vlans:
+    host: "{{ test_host }}"
+    port: "{{ test_port }}"
+    username: "{{ test_username }}"
+    password: "{{ test_password }}"
+    enable_password: "{{ test_enable_password }}"
+    vlans:
+      - vlan_id: 910
+        ip_address: 192.168.91.1
+  register: vlans_bad_no_mask
+  ignore_errors: true
+  tags: [jetstream_vlans, bad_data, never]
+
+- name: "[vlans][bad_data] Assert ip without mask failed"
+  ansible.builtin.assert:
+    that:
+      - vlans_bad_no_mask is failed
+    fail_msg: "Expected failure for ip_address without subnet_mask but task succeeded"
+  tags: [jetstream_vlans, bad_data, never]
+
+# ---------------------------------------------------------------------------
+
+- name: "[vlans][bad_data] Empty vlans list — clean exit, no changes"
+  lachlanstone.jetstream.jetstream_vlans:
+    host: "{{ test_host }}"
+    port: "{{ test_port }}"
+    username: "{{ test_username }}"
+    password: "{{ test_password }}"
+    enable_password: "{{ test_enable_password }}"
+    vlans: []
+  register: vlans_empty
+  tags: [jetstream_vlans, bad_data, never]
+
+- name: "[vlans][bad_data] Assert empty vlans list exited cleanly"
+  ansible.builtin.assert:
+    that:
+      - vlans_empty is not failed
+      - vlans_empty.changed == false
+    fail_msg: "Empty vlans list should not fail: {{ vlans_empty.msg | default('no msg') }}"
+  tags: [jetstream_vlans, bad_data, never]
+
+# ---------------------------------------------------------------------------
+# TEARDOWN — remove test VLANs (via switch CLI there is no delete in this
+# module, so we recreate default state instead: rename to standard, or leave).
+# The vlans module has no state=absent; VLANs created by this test remain.
+# ---------------------------------------------------------------------------

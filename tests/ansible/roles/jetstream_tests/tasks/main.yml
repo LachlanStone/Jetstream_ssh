@@ -1,0 +1,42 @@
+---
+# =============================================================================
+# jetstream_tests — main task entry point
+#
+# Includes each module's test file. Use tags to run individual modules:
+#
+#   ansible-playbook site.yml --tags jetstream_command
+#   ansible-playbook site.yml --tags jetstream_acls
+#   ansible-playbook site.yml --tags bad_data
+#   ansible-playbook site.yml --tags all_modules
+#
+# Every test file is tagged `never` by default to prevent accidental
+# execution. Use at least one explicit module tag or `all_modules` to run.
+# =============================================================================
+
+- name: "Run jetstream_command tests"
+  ansible.builtin.include_tasks: command.yml
+  tags: [jetstream_command, all_modules]
+
+- name: "Run jetstream_system tests"
+  ansible.builtin.include_tasks: system.yml
+  tags: [jetstream_system, all_modules]
+
+- name: "Run jetstream_vlans tests"
+  ansible.builtin.include_tasks: vlans.yml
+  tags: [jetstream_vlans, all_modules]
+
+- name: "Run jetstream_interfaces tests"
+  ansible.builtin.include_tasks: interfaces.yml
+  tags: [jetstream_interfaces, all_modules]
+
+- name: "Run jetstream_user tests"
+  ansible.builtin.include_tasks: user.yml
+  tags: [jetstream_user, all_modules]
+
+- name: "Run jetstream_acls tests"
+  ansible.builtin.include_tasks: acls.yml
+  tags: [jetstream_acls, all_modules]
+
+- name: "Run jetstream_save tests"
+  ansible.builtin.include_tasks: save.yml
+  tags: [jetstream_save, all_modules]

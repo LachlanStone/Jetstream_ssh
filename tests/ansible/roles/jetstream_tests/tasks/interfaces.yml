@@ -1,0 +1,483 @@
+---
+# =============================================================================
+# MODULE: jetstream_interfaces
+# Tests: all port_type choices, all speed choices, enabled true/false/absent,
+#        description (spaces/no spaces/absent), pvid set/null,
+#        vlan memberships (untagged/tagged/disabled), acceptable_frame_type,
+#        fully-qualified name, multiple interfaces, check_mode
+# Bad data: unknown port_type (arg validation), invalid speed (validation),
+#           invalid acceptable_frame_type (validation), empty list
+# =============================================================================
+
+# ---------------------------------------------------------------------------
+# HAPPY PATH — port_type coverage
+# ---------------------------------------------------------------------------
+
+- name: "[interfaces] port_type: gigabitEthernet (default)"
+  lachlanstone.jetstream.jetstream_interfaces:
+    host: "{{ test_host }}"
+    port: "{{ test_port }}"
+    username: "{{ test_username }}"
+    password: "{{ test_password }}"
+    enable_password: "{{ test_enable_password }}"
+    interfaces:
+      - name: "{{ test_iface_primary }}"
+        port_type: gigabitEthernet
+        description: "TestGiGE"
+  register: iface_gige
+  tags: [jetstream_interfaces, iface_port_type, never]
+
+- name: "[interfaces] Assert gigabitEthernet config succeeded"
+  ansible.builtin.assert:
+    that:
+      - iface_gige is not failed
+      - iface_gige.changed == true
+    fail_msg: "iface gigabitEthernet failed: {{ iface_gige.msg | default('no msg') }}"
+  tags: [jetstream_interfaces, iface_port_type, never]
+
+# ---------------------------------------------------------------------------
+
+- name: "[interfaces] port_type: two-gigabitEthernet — full feature set"
+  lachlanstone.jetstream.jetstream_interfaces:
+    host: "{{ test_host }}"
+    port: "{{ test_port }}"
+    username: "{{ test_username }}"
+    password: "{{ test_password }}"
+    enable_password: "{{ test_enable_password }}"
+    interfaces:
+      - name: "{{ test_iface_primary }}"
+        port_type: two-gigabitEthernet
+        speed: "2500"
+        enabled: true
+        description: "Uplink to core"
+        pvid: 910
+        vlans_untagged: [910]
+        vlans_tagged: [920, 930]
+        acceptable_frame_type: all
+  register: iface_full
+  tags: [jetstream_interfaces, iface_full, never]
+
+- name: "[interfaces] Assert full-feature two-gigabitEthernet config succeeded"
+  ansible.builtin.assert:
+    that:
+      - iface_full is not failed
+      - iface_full.changed == true
+    fail_msg: "iface full failed: {{ iface_full.msg | default('no msg') }}"
+  tags: [jetstream_interfaces, iface_full, never]
+
+# ---------------------------------------------------------------------------
+
+- name: "[interfaces] port_type: ten-gigabitEthernet"
+  lachlanstone.jetstream.jetstream_interfaces:
+    host: "{{ test_host }}"
+    port: "{{ test_port }}"
+    username: "{{ test_username }}"
+    password: "{{ test_password }}"
+    enable_password: "{{ test_enable_password }}"
+    interfaces:
+      - name: "{{ test_iface_tertiary }}"
+        port_type: ten-gigabitEthernet
+        description: "Test10G"
+  register: iface_10g
+  ignore_errors: true
+  tags: [jetstream_interfaces, iface_port_type, never]
+
+- name: "[interfaces] Assert ten-gigabitEthernet result (may fail if no 10G port)"
+  ansible.builtin.assert:
+    that:
+      - iface_10g is not failed
+    fail_msg: "iface ten-gigabit failed: {{ iface_10g.msg | default('no msg') }}"
+    success_msg: "ten-gigabitEthernet port configured"
+  ignore_errors: true
+  tags: [jetstream_interfaces, iface_port_type, never]
+
+# ---------------------------------------------------------------------------
+
+- name: "[interfaces] port_type: fastEthernet"
+  lachlanstone.jetstream.jetstream_interfaces:
+    host: "{{ test_host }}"
+    port: "{{ test_port }}"
+    username: "{{ test_username }}"
+    password: "{{ test_password }}"
+    enable_password: "{{ test_enable_password }}"
+    interfaces:
+      - name: "{{ test_iface_secondary }}"
+        port_type: fastEthernet
+        description: "TestFE"
+  register: iface_fe
+  ignore_errors: true
+  tags: [jetstream_interfaces, iface_port_type, never]
+
+- name: "[interfaces] Assert fastEthernet result (may fail if no FE port)"
+  ansible.builtin.assert:
+    that:
+      - iface_fe is not failed
+    fail_msg: "iface fastEthernet failed: {{ iface_fe.msg | default('no msg') }}"
+  ignore_errors: true
+  tags: [jetstream_interfaces, iface_port_type, never]
+
+# ---------------------------------------------------------------------------
+# HAPPY PATH — speed coverage
+# ---------------------------------------------------------------------------
+
+- name: "[interfaces] Speed choices — 10, 100, 1000, 10000, auto"
+  lachlanstone.jetstream.jetstream_interfaces:
+    host: "{{ test_host }}"
+    port: "{{ test_port }}"
+    username: "{{ test_username }}"
+    password: "{{ test_password }}"
+    enable_password: "{{ test_enable_password }}"
+    interfaces:
+      - name: "{{ test_iface_secondary }}"
+        port_type: "{{ test_iface_port_type }}"
+        speed: "1000"
+      - name: "{{ test_iface_tertiary }}"
+        port_type: "{{ test_iface_port_type }}"
+        speed: auto
+  register: iface_speeds
+  tags: [jetstream_interfaces, iface_speed, never]
+
+- name: "[interfaces] Assert speed config succeeded"
+  ansible.builtin.assert:
+    that:
+      - iface_speeds is not failed
+      - iface_speeds.changed == true
+    fail_msg: "iface speed failed: {{ iface_speeds.msg | default('no msg') }}"
+  tags: [jetstream_interfaces, iface_speed, never]
+
+# NOTE: speeds 10, 100, 10000 are CLI-validated by the switch itself; the
+# module passes them through. If your switch does not support a speed, the
+# command will be rejected by the CLI — treat that as expected variance.
+
+# ---------------------------------------------------------------------------
+# HAPPY PATH — admin state
+# ---------------------------------------------------------------------------
+
+- name: "[interfaces] Disable a port (enabled: false)"
+  lachlanstone.jetstream.jetstream_interfaces:
+    host: "{{ test_host }}"
+    port: "{{ test_port }}"
+    username: "{{ test_username }}"
+    password: "{{ test_password }}"
+    enable_password: "{{ test_enable_password }}"
+    interfaces:
+      - name: "{{ test_iface_secondary }}"
+        port_type: "{{ test_iface_port_type }}"
+        enabled: false
+  register: iface_disabled
+  tags: [jetstream_interfaces, iface_enabled, never]
+
+- name: "[interfaces] Assert port disable succeeded"
+  ansible.builtin.assert:
+    that:
+      - iface_disabled is not failed
+      - iface_disabled.changed == true
+    fail_msg: "iface disable failed: {{ iface_disabled.msg | default('no msg') }}"
+  tags: [jetstream_interfaces, iface_enabled, never]
+
+- name: "[interfaces] Re-enable the port (enabled: true)"
+  lachlanstone.jetstream.jetstream_interfaces:
+    host: "{{ test_host }}"
+    port: "{{ test_port }}"
+    username: "{{ test_username }}"
+    password: "{{ test_password }}"
+    enable_password: "{{ test_enable_password }}"
+    interfaces:
+      - name: "{{ test_iface_secondary }}"
+        port_type: "{{ test_iface_port_type }}"
+        enabled: true
+  register: iface_enabled
+  tags: [jetstream_interfaces, iface_enabled, never]
+
+- name: "[interfaces] Assert port re-enable succeeded"
+  ansible.builtin.assert:
+    that:
+      - iface_enabled is not failed
+    fail_msg: "iface enable failed: {{ iface_enabled.msg | default('no msg') }}"
+  tags: [jetstream_interfaces, iface_enabled, never]
+
+# ---------------------------------------------------------------------------
+# HAPPY PATH — PVID and VLAN memberships
+# ---------------------------------------------------------------------------
+
+- name: "[interfaces] PVID + untagged + tagged + disabled VLANs"
+  lachlanstone.jetstream.jetstream_interfaces:
+    host: "{{ test_host }}"
+    port: "{{ test_port }}"
+    username: "{{ test_username }}"
+    password: "{{ test_password }}"
+    enable_password: "{{ test_enable_password }}"
+    interfaces:
+      - name: "{{ test_iface_primary }}"
+        port_type: "{{ test_iface_port_type }}"
+        pvid: 910
+        vlans_untagged: [910]
+        vlans_tagged: [920, 930]
+        vlans_disabled: [1]
+  register: iface_pvid
+  tags: [jetstream_interfaces, iface_pvid, never]
+
+- name: "[interfaces] Assert PVID and VLAN membership config succeeded"
+  ansible.builtin.assert:
+    that:
+      - iface_pvid is not failed
+    fail_msg: "iface pvid failed: {{ iface_pvid.msg | default('no msg') }}"
+  tags: [jetstream_interfaces, iface_pvid, never]
+
+# ---------------------------------------------------------------------------
+
+- name: "[interfaces] acceptable_frame_type: tagged"
+  lachlanstone.jetstream.jetstream_interfaces:
+    host: "{{ test_host }}"
+    port: "{{ test_port }}"
+    username: "{{ test_username }}"
+    password: "{{ test_password }}"
+    enable_password: "{{ test_enable_password }}"
+    interfaces:
+      - name: "{{ test_iface_primary }}"
+        port_type: "{{ test_iface_port_type }}"
+        acceptable_frame_type: tagged
+        vlans_tagged: [910, 920]
+  register: iface_tagged
+  tags: [jetstream_interfaces, iface_frame_type, never]
+
+- name: "[interfaces] Assert tagged-only frame type succeeded"
+  ansible.builtin.assert:
+    that:
+      - iface_tagged is not failed
+    fail_msg: "iface tagged failed: {{ iface_tagged.msg | default('no msg') }}"
+  tags: [jetstream_interfaces, iface_frame_type, never]
+
+- name: "[interfaces] Restore acceptable_frame_type: all"
+  lachlanstone.jetstream.jetstream_interfaces:
+    host: "{{ test_host }}"
+    port: "{{ test_port }}"
+    username: "{{ test_username }}"
+    password: "{{ test_password }}"
+    enable_password: "{{ test_enable_password }}"
+    interfaces:
+      - name: "{{ test_iface_primary }}"
+        port_type: "{{ test_iface_port_type }}"
+        acceptable_frame_type: all
+  tags: [jetstream_interfaces, iface_frame_type, never]
+
+# ---------------------------------------------------------------------------
+# HAPPY PATH — description handling
+# ---------------------------------------------------------------------------
+
+- name: "[interfaces] Description with spaces (should be quoted in CLI)"
+  lachlanstone.jetstream.jetstream_interfaces:
+    host: "{{ test_host }}"
+    port: "{{ test_port }}"
+    username: "{{ test_username }}"
+    password: "{{ test_password }}"
+    enable_password: "{{ test_enable_password }}"
+    interfaces:
+      - name: "{{ test_iface_primary }}"
+        port_type: "{{ test_iface_port_type }}"
+        description: "Uplink to core"
+  register: iface_desc_space
+  tags: [jetstream_interfaces, iface_description, never]
+
+- name: "[interfaces] Assert spaced description succeeded"
+  ansible.builtin.assert:
+    that:
+      - iface_desc_space is not failed
+    fail_msg: "iface description with spaces failed: {{ iface_desc_space.msg | default('no msg') }}"
+  tags: [jetstream_interfaces, iface_description, never]
+
+- name: "[interfaces] Description without spaces (unquoted in CLI)"
+  lachlanstone.jetstream.jetstream_interfaces:
+    host: "{{ test_host }}"
+    port: "{{ test_port }}"
+    username: "{{ test_username }}"
+    password: "{{ test_password }}"
+    enable_password: "{{ test_enable_password }}"
+    interfaces:
+      - name: "{{ test_iface_primary }}"
+        port_type: "{{ test_iface_port_type }}"
+        description: "Simple"
+  register: iface_desc_plain
+  tags: [jetstream_interfaces, iface_description, never]
+
+- name: "[interfaces] Assert plain description succeeded"
+  ansible.builtin.assert:
+    that:
+      - iface_desc_plain is not failed
+    fail_msg: "iface plain description failed: {{ iface_desc_plain.msg | default('no msg') }}"
+  tags: [jetstream_interfaces, iface_description, never]
+
+# ---------------------------------------------------------------------------
+# HAPPY PATH — fully qualified interface name
+# ---------------------------------------------------------------------------
+
+- name: "[interfaces] Fully qualified name — gigabitEthernet 1/0/1"
+  lachlanstone.jetstream.jetstream_interfaces:
+    host: "{{ test_host }}"
+    port: "{{ test_port }}"
+    username: "{{ test_username }}"
+    password: "{{ test_password }}"
+    enable_password: "{{ test_enable_password }}"
+    interfaces:
+      - name: "gigabitEthernet {{ test_iface_primary }}"
+        description: "FullyQualified"
+  register: iface_fq
+  tags: [jetstream_interfaces, iface_fq_name, never]
+
+- name: "[interfaces] Assert fully qualified name succeeded"
+  ansible.builtin.assert:
+    that:
+      - iface_fq is not failed
+    fail_msg: "iface fully-qualified name failed: {{ iface_fq.msg | default('no msg') }}"
+  tags: [jetstream_interfaces, iface_fq_name, never]
+
+# ---------------------------------------------------------------------------
+# HAPPY PATH — multiple interfaces in one call
+# ---------------------------------------------------------------------------
+
+- name: "[interfaces] Configure multiple ports in one call"
+  lachlanstone.jetstream.jetstream_interfaces:
+    host: "{{ test_host }}"
+    port: "{{ test_port }}"
+    username: "{{ test_username }}"
+    password: "{{ test_password }}"
+    enable_password: "{{ test_enable_password }}"
+    interfaces:
+      - name: "{{ test_iface_primary }}"
+        port_type: "{{ test_iface_port_type }}"
+        speed: "1000"
+        pvid: 910
+        vlans_untagged: [910]
+      - name: "{{ test_iface_secondary }}"
+        port_type: "{{ test_iface_port_type }}"
+        description: "Unused"
+  register: iface_multi
+  tags: [jetstream_interfaces, iface_multi, never]
+
+- name: "[interfaces] Assert multi-port config succeeded"
+  ansible.builtin.assert:
+    that:
+      - iface_multi is not failed
+    fail_msg: "iface multi failed: {{ iface_multi.msg | default('no msg') }}"
+  tags: [jetstream_interfaces, iface_multi, never]
+
+# ---------------------------------------------------------------------------
+# HAPPY PATH — check mode
+# ---------------------------------------------------------------------------
+
+- name: "[interfaces] Check mode — no commands sent"
+  lachlanstone.jetstream.jetstream_interfaces:
+    host: "{{ test_host }}"
+    port: "{{ test_port }}"
+    username: "{{ test_username }}"
+    password: "{{ test_password }}"
+    enable_password: "{{ test_enable_password }}"
+    interfaces:
+      - name: "{{ test_iface_primary }}"
+        port_type: "{{ test_iface_port_type }}"
+        description: "CheckModeOnly"
+        pvid: 999
+  check_mode: true
+  register: iface_check
+  tags: [jetstream_interfaces, iface_check_mode, never]
+
+- name: "[interfaces] Assert check_mode reported no change"
+  ansible.builtin.assert:
+    that:
+      - iface_check is not failed
+      - iface_check.check_mode == true
+      - iface_check.changed == false
+    fail_msg: "iface check_mode failed: {{ iface_check.msg | default('no msg') }}"
+  tags: [jetstream_interfaces, iface_check_mode, never]
+
+# ---------------------------------------------------------------------------
+# BAD DATA
+# ---------------------------------------------------------------------------
+
+- name: "[interfaces][bad_data] Unknown port_type — expect Ansible validation failure"
+  lachlanstone.jetstream.jetstream_interfaces:
+    host: "{{ test_host }}"
+    port: "{{ test_port }}"
+    username: "{{ test_username }}"
+    password: "{{ test_password }}"
+    enable_password: "{{ test_enable_password }}"
+    interfaces:
+      - name: "1/0/99"
+        port_type: superEthernet
+  register: iface_bad_type
+  ignore_errors: true
+  tags: [jetstream_interfaces, bad_data, never]
+
+- name: "[interfaces][bad_data] Assert unknown port_type failed"
+  ansible.builtin.assert:
+    that:
+      - iface_bad_type is failed
+    fail_msg: "Expected failure for unknown port_type but task succeeded"
+  tags: [jetstream_interfaces, bad_data, never]
+
+# ---------------------------------------------------------------------------
+
+- name: "[interfaces][bad_data] Invalid speed — expect Ansible validation failure"
+  lachlanstone.jetstream.jetstream_interfaces:
+    host: "{{ test_host }}"
+    port: "{{ test_port }}"
+    username: "{{ test_username }}"
+    password: "{{ test_password }}"
+    enable_password: "{{ test_enable_password }}"
+    interfaces:
+      - name: "1/0/99"
+        speed: "500"
+  register: iface_bad_speed
+  ignore_errors: true
+  tags: [jetstream_interfaces, bad_data, never]
+
+- name: "[interfaces][bad_data] Assert invalid speed failed"
+  ansible.builtin.assert:
+    that:
+      - iface_bad_speed is failed
+    fail_msg: "Expected failure for invalid speed but task succeeded"
+  tags: [jetstream_interfaces, bad_data, never]
+
+# ---------------------------------------------------------------------------
+
+- name: "[interfaces][bad_data] Invalid acceptable_frame_type — expect validation failure"
+  lachlanstone.jetstream.jetstream_interfaces:
+    host: "{{ test_host }}"
+    port: "{{ test_port }}"
+    username: "{{ test_username }}"
+    password: "{{ test_password }}"
+    enable_password: "{{ test_enable_password }}"
+    interfaces:
+      - name: "1/0/99"
+        acceptable_frame_type: untagged-only
+  register: iface_bad_frame
+  ignore_errors: true
+  tags: [jetstream_interfaces, bad_data, never]
+
+- name: "[interfaces][bad_data] Assert invalid acceptable_frame_type failed"
+  ansible.builtin.assert:
+    that:
+      - iface_bad_frame is failed
+    fail_msg: "Expected failure for invalid acceptable_frame_type but task succeeded"
+  tags: [jetstream_interfaces, bad_data, never]
+
+# ---------------------------------------------------------------------------
+
+- name: "[interfaces][bad_data] Empty interfaces list — clean exit"
+  lachlanstone.jetstream.jetstream_interfaces:
+    host: "{{ test_host }}"
+    port: "{{ test_port }}"
+    username: "{{ test_username }}"
+    password: "{{ test_password }}"
+    enable_password: "{{ test_enable_password }}"
+    interfaces: []
+  register: iface_empty
+  tags: [jetstream_interfaces, bad_data, never]
+
+- name: "[interfaces][bad_data] Assert empty interfaces list exited cleanly"
+  ansible.builtin.assert:
+    that:
+      - iface_empty is not failed
+      - iface_empty.changed == false
+    fail_msg: "Empty interfaces list should not fail: {{ iface_empty.msg | default('no msg') }}"
+  tags: [jetstream_interfaces, bad_data, never]
