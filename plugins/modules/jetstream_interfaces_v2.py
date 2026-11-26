@@ -98,6 +98,8 @@ options:
         choices: [all, tagged]
 notes:
   - Supports check mode.
+  - An omitted PVID in a physical interface's running-config block is treated as the default VLAN 1.
+  - Fails if a requested port is absent from the interface configuration or the switch rejects a command.
 """
 
 EXAMPLES = r"""
@@ -145,6 +147,7 @@ steps:
 """
 
 import logging
+import re
 
 from ansible.module_utils.basic import AnsibleModule
 from netmiko import ConnectHandler
@@ -197,6 +200,10 @@ if logging_enabled:
 
 # Entering `interface ...` changes the prompt from (config)# to (config-if)#; match both.
 _CONFIG_PROMPT = CONFIG_PROMPT
+_CLI_ERROR = re.compile(
+    r"^\s*%?\s*(?:error\b|invalid input\b|incomplete command\b)",
+    re.IGNORECASE | re.MULTILINE,
+)
 
 
 def _build_change_commands(delta):
@@ -284,6 +291,8 @@ def configure_interface(net_connect, iface, config, running, collector, check_mo
             )
         stdout_parts.append(f"# {cmd}\n{output}".strip())
         logger.info("Sent: %s | Output: %s", cmd, output.strip())
+        if _CLI_ERROR.search(output):
+            raise RuntimeError(f"Interface {name}: command {cmd!r} failed: {output.strip()}")
 
         # `interface ...` must actually switch the CLI into interface mode.
         if cmd.startswith("interface "):
@@ -330,6 +339,12 @@ def run_module(module):
 
         config_by_port = {_port_id(cfg.port): cfg for cfg in configs}
         running_by_port = {rif.name: rif for rif in running_interfaces}
+
+        for iface in interfaces:
+            if _port_id(iface["name"]) not in config_by_port:
+                raise RuntimeError(
+                    f"Interface {iface['name']}: not found in switch interface configuration."
+                )
 
         for iface in interfaces:
             port_id = _port_id(iface["name"])

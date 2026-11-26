@@ -1,6 +1,7 @@
 """Unit tests for jetstream_interfaces_v2 idempotent diffing."""
 
 import unittest
+from unittest.mock import MagicMock, patch
 
 from plugins.module_utils.collector import ResultCollector
 from plugins.module_utils.interfaces.interface_classes import (
@@ -9,7 +10,8 @@ from plugins.module_utils.interfaces.interface_classes import (
     _port_id,
     diff_interface,
 )
-from plugins.modules.jetstream_interfaces_v2 import configure_interface
+from plugins.module_utils.interfaces.interface_parsers import parse_running_config
+from plugins.modules.jetstream_interfaces_v2 import configure_interface, run_module
 
 
 def _desired(overrides=None):
@@ -127,8 +129,46 @@ class TestDiffInterface(unittest.TestCase):
         delta = diff_interface(desired, config, running)
         self.assertIsNone(delta["description"])  # None -> 'no description'
 
+    def test_default_pvid_is_unchanged_when_omitted_from_running_config(self):
+        running = parse_running_config("interface two-gigabitEthernet 1/0/1\n")[0]
+        self.assertIsNone(diff_interface(_desired({"pvid": 1}), running=running))
+        self.assertEqual(diff_interface(_desired({"pvid": 10}), running=running)["pvid"], 10)
+
 
 class TestConfigureInterface(unittest.TestCase):
+    def test_switch_errors_stop_configuration(self):
+        for error in ("Error: Bad command", "% Invalid input", "Incomplete command"):
+            with self.subTest(error=error):
+                collector = ResultCollector()
+                collector.set_basic_info(switch="192.0.2.10")
+                config = InterfaceConfig("Tw1/0/1", "Enable", "Auto", "Auto", "Disable")
+                running = RunningConfigInterface(name="1/0/1", port_type="two-gigabitEthernet")
+                conn = MagicMock()
+                with patch("plugins.modules.jetstream_interfaces_v2.ensure_global_config"), \
+                     patch("plugins.modules.jetstream_interfaces_v2.require_config_mode"), \
+                     patch("plugins.modules.jetstream_interfaces_v2.send_command",
+                           side_effect=["", error]) as send:
+                    with self.assertRaisesRegex(RuntimeError, "1/0/1.*speed 1000") as raised:
+                        configure_interface(conn, _desired({"speed": "1000"}), config,
+                                            running, collector, check_mode=False)
+                self.assertIn(error, str(raised.exception))
+                self.assertEqual(send.call_count, 2)
+                conn.send_command_timing.assert_not_called()
+                self.assertFalse(collector.changed)
+
+    def test_error_on_exit_is_reported(self):
+        collector = ResultCollector()
+        collector.set_basic_info(switch="192.0.2.10")
+        config = InterfaceConfig("Tw1/0/1", "Enable", "Auto", "Auto", "Disable")
+        conn = MagicMock()
+        conn.send_command_timing.return_value = "Error: Bad command"
+        with patch("plugins.modules.jetstream_interfaces_v2.ensure_global_config"), \
+             patch("plugins.modules.jetstream_interfaces_v2.require_config_mode"), \
+             patch("plugins.modules.jetstream_interfaces_v2.send_command", return_value=""):
+            with self.assertRaisesRegex(RuntimeError, "exit.*Error: Bad command"):
+                configure_interface(conn, _desired({"speed": "1000"}), config,
+                                    None, collector, check_mode=False)
+
     def test_check_mode_match_is_unchanged(self):
         collector = ResultCollector()
         collector.set_basic_info(switch="192.0.2.10", check_mode=True)
@@ -224,6 +264,30 @@ class TestConfigureInterface(unittest.TestCase):
                 "exit",
             ],
         )
+
+
+class TestRunModule(unittest.TestCase):
+    def test_missing_port_fails_before_any_configuration_in_both_modes(self):
+        for check_mode in (False, True):
+            with self.subTest(check_mode=check_mode):
+                module = MagicMock()
+                module.params = {"host": "192.0.2.10", "interfaces": [
+                    _desired({"name": "1/0/1"}),
+                    _desired({"name": "1/0/999", "acceptable_frame_type": "all"}),
+                ]}
+                module.check_mode = check_mode
+                module._verbosity = 0
+                config = InterfaceConfig("Tw1/0/1", "Enable", "Auto", "Auto", "Disable")
+                with patch("plugins.modules.jetstream_interfaces_v2.build_device", return_value={}), \
+                     patch("plugins.modules.jetstream_interfaces_v2.ConnectHandler"), \
+                     patch("plugins.modules.jetstream_interfaces_v2.get_interface_configuration",
+                           return_value=[config]), \
+                     patch("plugins.modules.jetstream_interfaces_v2.get_running_config", return_value=[]), \
+                     patch("plugins.modules.jetstream_interfaces_v2.configure_interface") as configure:
+                    with self.assertRaisesRegex(RuntimeError, "1/0/999"):
+                        run_module(module)
+                configure.assert_not_called()
+                module.exit_json.assert_not_called()
 
 
 if __name__ == "__main__":

@@ -273,7 +273,7 @@ class TestParseRunningConfigFull(unittest.TestCase):
         self.assertEqual(iface.vlans_tagged, [10])
         self.assertEqual(iface.vlans_disabled, [1])
         self.assertEqual(iface.acceptable_frame_type, "tagged")
-        self.assertIsNone(iface.pvid)
+        self.assertEqual(iface.pvid, 1)
         self.assertEqual(iface.description, "")
 
     def test_configured_port_1_0_2(self):
@@ -289,7 +289,7 @@ class TestParseRunningConfigFull(unittest.TestCase):
         self.assertEqual(iface.vlans_tagged, [])
         self.assertEqual(iface.vlans_disabled, [])
         self.assertEqual(iface.acceptable_frame_type, "all")
-        self.assertIsNone(iface.pvid)
+        self.assertEqual(iface.pvid, 1)
         self.assertEqual(iface.description, "")
 
     def test_ten_gigabit_port(self):
@@ -317,7 +317,7 @@ class TestParseRunningConfigSingle(unittest.TestCase):
         self.assertEqual(iface.vlans_tagged, [10])
         self.assertEqual(iface.vlans_disabled, [1])
         self.assertEqual(iface.acceptable_frame_type, "tagged")
-        self.assertIsNone(iface.pvid)
+        self.assertEqual(iface.pvid, 1)
 
 
 # ---------------------------------------------------------------------------

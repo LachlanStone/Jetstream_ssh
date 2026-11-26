@@ -202,7 +202,8 @@ def parse_running_config(output: str) -> list:
           spanning-tree
 
     Only physical ``*-Ethernet`` blocks are collected; ``interface vlan N`` and
-    all global configuration lines are skipped.
+    all global configuration lines are skipped. A missing PVID command in an
+    interface block represents the switch default, VLAN 1.
 
     Args:
         output: Raw string returned by the switch for ``show running-config``
@@ -228,6 +229,7 @@ def parse_running_config(output: str) -> list:
                 current = RunningConfigInterface(
                     name=parts[2],
                     port_type=parts[1],
+                    pvid=1,
                 )
                 interfaces.append(current)
             continue
