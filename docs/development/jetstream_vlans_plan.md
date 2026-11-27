@@ -357,7 +357,7 @@ python3 -c "import ast, pathlib; ast.parse(pathlib.Path('plugins/modules/jetstre
 
 ## Known limits
 
-- **No idempotency.** Module always pushes commands. No `show vlan` read before writing.
+- **Idempotency:** implemented after this plan, via `show running-config` parsing and `build_vlan_delta`.
 - **No `state: absent`.** Deleting a VLAN or removing an SVI IP requires `no vlan <id>` / `no ip address` — not implemented. Add a `state` param and `build_absent_commands` if needed later.
 - **No SVI `no shutdown`.** SVI interfaces on JetStream come up automatically when the VLAN exists; no explicit `no shutdown` needed. If a specific firmware requires it, add an `svi_enabled` bool field.
 - **subnet_mask is dotted-decimal only.** CIDR prefix notation (e.g. `/24`) is not handled; the CLI expects dotted-decimal.

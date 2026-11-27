@@ -313,12 +313,12 @@ def run_module(module):
 
     with ConnectHandler(**device) as net_connect:
         net_connect.enable()
-        net_connect.config_mode()
+        if not module.check_mode:
+            net_connect.config_mode()
 
-        # Read the current state. ``show`` commands work from config mode too,
-        # and entering config mode first keeps the same proven sequence as the
-        # original module (enable -> config_mode) instead of desyncing the
-        # session with a large ``show running-config`` read beforehand.
+        # Reads work in privileged mode. On a real run, config mode is entered
+        # before the reads to keep the proven session sequence; check mode never
+        # enters or leaves a config context.
         configs = get_interface_configuration(net_connect)
         running_interfaces = get_running_config(net_connect)
 

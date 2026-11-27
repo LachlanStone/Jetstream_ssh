@@ -82,9 +82,38 @@ def get_current_acls(net_connect):
                 "action": action
             }
 
-            if "logging" in parts:
-                idx = parts.index("logging")
-                rule["logging"] = parts[idx + 1]
+            # The switch prints a rule in the same key/value shape the CLI
+            # accepts: logging <enable|disable>, vid N, sip IP sip-mask M,
+            # dip IP dip-mask M, protocol N, d-port P d-port-mask M.
+            index = 3
+            while index < len(parts):
+                key = parts[index]
+                if key == "logging" and index + 1 < len(parts):
+                    rule["logging"] = parts[index + 1]
+                    index += 2
+                elif key == "vid" and index + 1 < len(parts):
+                    rule["vid"] = int(parts[index + 1])
+                    index += 2
+                elif key in ("sip", "dip") and index + 3 < len(parts):
+                    mask_key = f"{key}-mask"
+                    if parts[index + 2] == mask_key:
+                        rule[key] = parts[index + 1]
+                        rule[f"{key}_mask"] = parts[index + 3]
+                        index += 4
+                    else:
+                        index += 1
+                elif key == "protocol" and index + 1 < len(parts):
+                    rule["protocol"] = int(parts[index + 1])
+                    index += 2
+                elif key == "d-port" and index + 3 < len(parts):
+                    if parts[index + 2] == "d-port-mask":
+                        rule["dport"] = parts[index + 1]
+                        rule["dport_mask"] = parts[index + 3]
+                        index += 4
+                    else:
+                        index += 1
+                else:
+                    index += 1
             current_acl["rules"].append(rule)
     logger.info(f"Current ACLs on device: {acls}")
     return acls

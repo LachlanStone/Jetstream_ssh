@@ -1,7 +1,8 @@
 import unittest
+from unittest.mock import MagicMock, patch
 
 from plugins.module_utils.collector import ResultCollector
-from plugins.modules.jetstream_save import save_configuration
+from plugins.modules.jetstream_save import run_module, save_configuration
 
 
 class TestJetstreamSave(unittest.TestCase):
@@ -51,6 +52,28 @@ class TestJetstreamSave(unittest.TestCase):
         self.assertTrue(steps[0]["changed"])
         self.assertEqual(steps[0]["command"], "write")
         self.assertEqual(steps[0]["stdout"], "Building configuration... [OK]")
+
+    def test_run_module_check_mode_does_not_connect(self):
+        module = MagicMock()
+        module.params = {
+            "host": "192.0.2.10",
+            "port": 22,
+            "username": "admin",
+            "password": "pw",
+            "enable_password": "",
+            "read_timeout": None,
+            "command": "copy running-config startup-config",
+        }
+        module.check_mode = True
+        module._verbosity = 0
+
+        with patch(
+            "plugins.modules.jetstream_save.build_device", return_value={}
+        ), patch("plugins.modules.jetstream_save.ConnectHandler") as connect:
+            run_module(module)
+
+        connect.assert_not_called()
+        module.exit_json.assert_called_once()
 
 
 if __name__ == "__main__":

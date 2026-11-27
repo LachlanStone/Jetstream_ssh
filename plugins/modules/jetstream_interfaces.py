@@ -13,9 +13,9 @@ short_description: Configure physical interfaces on TP-Link JetStream switches
 description:
   - Connects to a TP-Link JetStream (Omada) switch over SSH with Netmiko and pushes per-interface settings
     such as speed, state, description, PVID and VLAN membership.
-  - Commands are sent through the switch CLI, so the controller running the module needs network access to
-    the switch. The module does not read the current interface state first, so it always reports a change
-    when it sends commands.
+  - Reads the current interface state first (C(show interface configuration) and
+    C(show running-config)) and only sends the commands for settings that differ, so it reports
+    C(changed=false) when the interfaces already match the desired state.
 version_added: "0.1.0"
 author:
   - Lachlan Stone (@lachlanstone)
@@ -144,6 +144,7 @@ steps:
 """
 
 import logging
+import re
 import traceback
 
 from ansible.module_utils.basic import AnsibleModule
@@ -162,6 +163,14 @@ from ansible_collections.lachlanstone.jetstream.plugins.module_utils.config_mode
 )
 from ansible_collections.lachlanstone.jetstream.plugins.module_utils.interfaces.interface_builder import (
     build_commands,
+)
+from ansible_collections.lachlanstone.jetstream.plugins.module_utils.interfaces.interface_classes import (
+    _port_id,
+    diff_interface,
+)
+from ansible_collections.lachlanstone.jetstream.plugins.module_utils.interfaces.interface_parsers import (
+    get_interface_configuration,
+    get_running_config,
 )
 from ansible_collections.lachlanstone.jetstream.plugins.module_utils.device import (
     build_device,
@@ -189,24 +198,51 @@ if logging_enabled and not logger.handlers:
 
 # Entering `interface ...` changes the prompt from (config)# to (config-if)#; match both.
 _CONFIG_PROMPT = CONFIG_PROMPT
+_CLI_ERROR = re.compile(
+    r"^\s*%?\s*(?:error\b|invalid input\b|incomplete command\b)",
+    re.IGNORECASE | re.MULTILINE,
+)
 
 
-def configure_interface(net_connect, iface, collector, check_mode):
-    """Push one interface's commands to the device.
+def configure_interface(
+    net_connect, iface, collector, check_mode, config=None, running=None
+):
+    """Push only the differing settings for one interface to the device.
 
-    Builds the CLI command list via ``build_commands``, then sends each
-    command through the existing Netmiko session.  In check mode the
-    commands are recorded but never sent.
+    Computes the delta between the desired entry and the current state, then
+    sends the commands for that delta.  When the interface already matches, no
+    command is sent and the step is recorded as unchanged.
 
     Args:
-        net_connect: Active Netmiko connection (already in config mode).
+        net_connect: Active Netmiko connection (already in config mode when
+            ``check_mode`` is False).
         iface (dict): One interface entry from ``module.params['interfaces']``.
         collector (ResultCollector): Shared result accumulator.
         check_mode (bool): When True, skip sending; report what would change.
+        config (InterfaceConfig|None): Current state from
+            ``show interface configuration``.
+        running (RunningConfigInterface|None): Current state from
+            ``show running-config``.
     """
     name = iface["name"]
-    cmds = build_commands(iface)
-    stdout_parts = []
+    settings = {key: value for key, value in iface.items() if key != "name"}
+
+    delta = diff_interface(iface, config, running)
+
+    if delta is None:
+        collector.add_step(
+            name=f"configure_interface:{name}",
+            step_result={
+                "changed": False,
+                "msg": f"Interface {name}: already in desired state, no changes needed.",
+                "commands": [],
+                "settings": settings,
+                "stdout": "",
+            },
+        )
+        return
+
+    cmds = build_commands(delta)
 
     if check_mode:
         msg = f"Interface {name}: would apply {len(cmds)} command(s)."
@@ -214,10 +250,10 @@ def configure_interface(net_connect, iface, collector, check_mode):
         collector.add_step(
             name=f"configure_interface:{name}",
             step_result={
-                "changed": False,
+                "changed": True,
                 "msg": msg,
                 "commands": cmds,
-                "settings": {key: value for key, value in iface.items() if key != "name"},
+                "settings": settings,
                 "stdout": "",
             },
         )
@@ -226,6 +262,7 @@ def configure_interface(net_connect, iface, collector, check_mode):
     # Recover from a previous block that did not return to global config.
     ensure_global_config(net_connect)
 
+    stdout_parts = []
     for cmd in cmds:
         if cmd == "exit":
             # JetStream does not reprint the prompt after `exit`; don't wait for one.
@@ -240,6 +277,10 @@ def configure_interface(net_connect, iface, collector, check_mode):
             )
         stdout_parts.append(f"# {cmd}\n{output}".strip())
         logger.info("Sent: %s | Output: %s", cmd, output.strip())
+        if _CLI_ERROR.search(output):
+            raise RuntimeError(
+                f"Interface {name}: command {cmd!r} failed: {output.strip()}"
+            )
 
         # `interface ...` must actually switch the CLI into interface mode.
         if cmd.startswith("interface "):
@@ -254,7 +295,7 @@ def configure_interface(net_connect, iface, collector, check_mode):
             "msg": f"Interface {name} configured.",
             "commands": cmds,
             "commands_sent": cmds,
-            "settings": {key: value for key, value in iface.items() if key != "name"},
+            "settings": settings,
             "stdout": "\n".join(stdout_parts),
         },
     )
@@ -275,9 +316,31 @@ def run_module(module):
 
     with ConnectHandler(**device) as net_connect:
         net_connect.enable()
-        net_connect.config_mode()
+        if not module.check_mode:
+            net_connect.config_mode()
+
+        configs = get_interface_configuration(net_connect)
+        running_interfaces = get_running_config(net_connect)
+
+        config_by_port = {_port_id(cfg.port): cfg for cfg in configs}
+        running_by_port = {rif.name: rif for rif in running_interfaces}
+
         for iface in interfaces:
-            configure_interface(net_connect, iface, collector, module.check_mode)
+            if _port_id(iface["name"]) not in config_by_port:
+                raise RuntimeError(
+                    f"Interface {iface['name']}: not found in switch interface configuration."
+                )
+
+        for iface in interfaces:
+            port_id = _port_id(iface["name"])
+            configure_interface(
+                net_connect,
+                iface,
+                collector,
+                module.check_mode,
+                config=config_by_port.get(port_id),
+                running=running_by_port.get(port_id),
+            )
 
     result = collector.return_info()
     module.exit_json(**result)

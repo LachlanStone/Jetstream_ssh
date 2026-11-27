@@ -59,3 +59,50 @@ def build_vlan_commands(vlan):
         cmds.append("exit")
 
     return cmds
+
+
+def build_vlan_delta(vlan, current):
+    """Return the subset of *vlan* that differs from the parsed *current* state.
+
+    Args:
+        vlan (dict): One desired VLAN entry.
+        current (dict|None): Parsed running-config entry for the same VLAN,
+            or ``None`` when the VLAN does not exist.
+
+    Returns:
+        dict|None: A delta accepted by :func:`build_vlan_commands`, or
+        ``None`` when nothing needs to change.
+
+    Raises:
+        ValueError: Same validation as :func:`build_vlan_commands`.
+    """
+    # Validate the full desired entry even when it turns out to be a no-op.
+    build_vlan_commands(vlan)
+
+    if current is None:
+        return dict(vlan)
+
+    vlan_id = vlan["vlan_id"]
+    delta = {"vlan_id": vlan_id}
+    changed = False
+
+    if vlan.get("name") is not None and vlan["name"] != current.get("name"):
+        delta["name"] = vlan["name"]
+        changed = True
+
+    ip_address = vlan.get("ip_address")
+    subnet_mask = vlan.get("subnet_mask")
+
+    if ip_address:
+        if (
+            ip_address != current.get("ip_address")
+            or subnet_mask != current.get("subnet_mask")
+        ):
+            delta["ip_address"] = ip_address
+            delta["subnet_mask"] = subnet_mask
+            changed = True
+    elif vlan.get("ip_dhcp") and not current.get("ip_dhcp"):
+        delta["ip_dhcp"] = True
+        changed = True
+
+    return delta if changed else None

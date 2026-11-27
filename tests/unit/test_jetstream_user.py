@@ -1,9 +1,9 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import unittest
 
 from plugins.module_utils.collector import ResultCollector
-from plugins.modules.jetstream_user import parse_user_output, manage_users
+from plugins.modules.jetstream_user import parse_user_output, manage_users, run_module
 
 
 class TestJetstreamUser(unittest.TestCase):
@@ -253,6 +253,43 @@ guest1           guest            enable
         user_entries = [{"name": "bad user", "password": "pass"}]
         with self.assertRaises(ValueError):
             manage_users(None, user_entries, collector, check_mode=True)
+
+    def test_run_module_check_mode_skips_config_mode(self):
+        module = MagicMock()
+        module.params = {
+            "host": "192.0.2.10",
+            "port": 22,
+            "username": "admin",
+            "password": "pw",
+            "enable_password": "",
+            "read_timeout": None,
+            "name": "admin",
+            "privilege": "admin",
+            "password": "newpass",
+            "password_type": "secret",
+            "encryption_type": 0,
+            "update_password": "on_create",
+            "state": "present",
+            "save_config": False,
+            "users": [],
+        }
+        module.check_mode = True
+        module._verbosity = 0
+
+        conn = MagicMock()
+        conn.__enter__.return_value = conn
+
+        with patch(
+            "plugins.modules.jetstream_user.build_device", return_value={}
+        ), patch(
+            "plugins.modules.jetstream_user.ConnectHandler", return_value=conn
+        ), patch(
+            "plugins.modules.jetstream_user.manage_users", return_value=False
+        ):
+            run_module(module)
+
+        conn.config_mode.assert_not_called()
+        module.exit_json.assert_called_once()
 
 
 if __name__ == "__main__":

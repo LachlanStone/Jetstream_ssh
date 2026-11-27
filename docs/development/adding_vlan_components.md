@@ -267,9 +267,10 @@ The builder never calls this. The module sends each returned command.
 ## Check mode
 
 `configure_vlan()` receives `check_mode: bool`. When `True`, it records the
-command list with `changed: False` and returns without connecting changes to the
-switch. The builder still runs so the preview matches the commands that would
-run.
+delta command list with `changed: True` when a real run would change the VLAN
+(`False` when it already matches) and returns without connecting changes to the
+switch. `build_vlan_commands` still runs so the preview matches the commands
+that would run.
 
 ---
 
@@ -314,8 +315,6 @@ Do not use a management VLAN or management subnet for the static SVI case.
 
 ## Things not implemented (known limits)
 
-- **No idempotency.** The module always pushes commands. There is no `show vlan`
-  read before writing.
 - **No `state: absent`.** Deleting a VLAN or removing an SVI IP requires
   `no vlan <id>` / `no ip address` — not implemented.
 - **No SVI `no shutdown`.** SVIs on JetStream come up automatically when the VLAN

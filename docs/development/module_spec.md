@@ -101,7 +101,7 @@ Every `step_result` passed to `add_step` must include:
 | `changed` | Whether this step changed (or would change) state |
 | `msg` | Human-readable step summary |
 | `commands` | Commands built for this step |
-| `commands_sent` | Commands actually sent; **empty list in check mode** |
+| `commands_sent` | Accepted on the step result but not stored on the step; the collector tracks sent commands at the top level and suppresses them in check mode |
 
 ```python
 collector.add_step(
@@ -137,8 +137,12 @@ Produce this via `collector.return_info()` — do not assemble a parallel result
 ## Check mode
 
 - All **config** modules must declare `supports_check_mode=True`.
-- In check mode: build commands, record them on the step (`commands`), set
-  `changed: False`, keep `commands_sent: []`, and **do not** send to the device.
+- In check mode: read current state as needed, build commands, record them on
+  the step (`commands`), keep `commands_sent: []`, and **do not** send to the
+  device or enter `config_mode()`.
+- `changed` reports whether a real run would change the switch: `true` when the
+  switch differs from the requested state, `false` when it already matches.
+  This matches Ansible's check-mode convention.
 - `jetstream_command` is the only module that explicitly does **not** support
   check mode (`supports_check_mode=False`).
 
@@ -176,7 +180,8 @@ def run_module(module):
 
     with ConnectHandler(**device) as net_connect:
         net_connect.enable()
-        net_connect.config_mode()
+        if not module.check_mode:
+            net_connect.config_mode()
         # call helpers that each collector.add_step(...)
 
     result = collector.return_info()

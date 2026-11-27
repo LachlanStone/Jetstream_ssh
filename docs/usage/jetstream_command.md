@@ -80,7 +80,7 @@ When no template matches (or `NET_TEXTFSM` is not set), `textfsm_parsed` holds t
 
 ## Check mode
 
-Not supported. In check mode the module exits with `changed: false` and `msg: "Check mode - no commands executed"`, without connecting to the switch. No `commands` key is returned.
+Not supported. `supports_check_mode=False`, so Ansible skips the module before it runs (`skipped: true`) and it never connects to the switch. No `commands` key is returned.
 
 ## Return values
 

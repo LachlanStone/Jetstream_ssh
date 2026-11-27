@@ -98,7 +98,7 @@ The module manages a single ACL per task. Run it once per ACL.
 
 ## What happens on each run
 
-1. **Collect.** The module enters config mode, then reads `show access-list bind` and `show access-list`. This tells it whether the ACL is bound and whether it exists.
+1. **Collect.** The module reads `show access-list bind` and `show access-list` (in privileged mode; config mode is entered only for a real run). This tells it whether the ACL is bound and whether it exists.
 2. **Unbind.** Skipped for `present`.
    - `unbind` ends the run here.
 3. **Remove.** For `absent` and `update`, sends `no access-list create <id>` if the ACL exists.
@@ -111,15 +111,13 @@ The module does not re-read the switch to verify the result.
 
 ## Check mode
 
-`--check` reads the switch and reports what would be done, but sends no commands. Step messages read `would be unbound`, `would be removed`, `would be created`, `would be configured` or `would be bound`. `changed` stays `false` and `cmd` is empty.
-
-`state: update` in check mode fails when the ACL already exists, because the removal is not simulated and the create step then finds the ACL still present. Use `--check` with `present`, `absent` or `unbind` only.
+`--check` reads the switch and reports what would be done, but sends no commands. Step messages read `would be unbound`, `would be removed`, `would be created`, `would be configured` or `would be bound`. `changed` is `true` when a real run would change the ACL and `false` when it already matches; `cmd` is empty. All states, including `update`, complete in check mode.
 
 ## Return values
 
 | Key | When | Contents |
 |---|---|---|
-| `changed` | always | `true` if any command was sent. |
+| `changed` | always | `true` if a real run would change the switch; in check mode no commands are sent. |
 | `msg` | always | Message from the last step. |
 | `switch` | always | Host the module connected to. |
 | `check_mode` | always | Whether the run was in check mode. |
@@ -136,7 +134,6 @@ Step names are `unbind_acl`, `remove_acl`, `create_and_update_acl`, `create_and_
 
 | Message | Cause |
 |---|---|
-| `ACL <id> should not be present on the system when updating. This may indicate a logic error.` | `state: update` in check mode on an existing ACL (see Check mode). |
 | `Unknown protocol name: <name>` | A `protocol_name` the module cannot map to a number. |
 | `Unexpected state '<state>' for ACL <id>.` | Internal guard; not reachable with the allowed `state` choices. |
 
@@ -144,9 +141,9 @@ Other failures (SSH, authentication, timeouts, a command the switch rejects) are
 
 ## Limitations
 
-- **Not idempotent for rules.** With `present` the rule commands are sent on every run, so `changed` is `true` each time rules are given. Rules already on the switch are not compared, and rules you leave out are not removed. Use `update` to rebuild the ACL from exactly your rules.
+- **Rules are compared for `present`.** If every requested rule already exists with the same sequence, action, logging, match fields and ports, nothing is sent and `changed` is `false`. Rules you leave out are not removed.
 - **`update` drops and recreates the ACL.** It is unbound and removed first, so it is briefly absent from the switch.
-- **`logging` is sent as `enable` whenever it has a value.** The code tests the option for truthiness, and `disable` is a non-empty string. So `logging: disable`, and the default, produce `logging enable`. Verified from the code only, not on a switch.
+- **Rule comparison relies on the CLI echo.** The parser reads the key/value form the switch prints (`logging`, `vid`, `sip`/`sip-mask`, `dip`/`dip-mask`, `protocol`, `d-port`/`d-port-mask`). Fields the switch omits are treated as unset, except `logging`, which defaults to `disable`.
 - **`acls` is needed in practice.** The module builds the ACL from it before checking `state`, so omit it only if you accept a failure.
 - **Rules are slow.** Each rule is followed by a 5-second wait.
 - **Saving is separate.** Changes are made to the running config. Use `jetstream_save` to persist them.
