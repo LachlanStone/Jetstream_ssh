@@ -31,17 +31,22 @@ return.
 
 ## How `run_module()` executes
 
-The module connects, enables, enters config mode, then runs helpers in order:
+The module connects and enables, then:
 
-1. `set_general_information` — hostname, location, contact
-2. `configure_dns` — primary / secondary DNS
-3. `configure_ntp` — NTP (applied only when `type == "ntp"` and `ntp_utc`,
-   2+ servers, and `ntp_fetch_time` are all provided)
+1. Reads current state — `show system-info` when `system` carries a value,
+   `show running-config` when `dns`, `ntp` or `lldp` does. Both reads run in
+   privileged mode, before config mode is entered, and run in check mode too:
+   they are what make `changed` accurate.
+2. Enters config mode (only when not in check mode) and applies, in order:
+   1. `set_general_information` — hostname, location, contact
+   2. `configure_dns` — primary / secondary DNS
+   3. `configure_ntp` — NTP (applied only when `type == "ntp"` and `ntp_utc`,
+      2+ servers, and `ntp_fetch_time` are all provided)
+   4. `configure_lldp` — global LLDP
 
-`set_general_information` is the only helper that reads current state first
-(`show system-info`) and skips a field when it already matches — the closest
-thing to idempotency in this module. The other helpers push whenever the value
-is truthy.
+Every helper compares the requested value against the pre-read state and
+skips the command when they already match. An empty read (command failed or
+nothing parsed) counts as "unknown" and falls back to applying the value.
 
 ---
 
@@ -55,6 +60,16 @@ is truthy.
 | `dns` | `primary` | `ip dns-address primary <v>` |
 | `dns` | `secondary` | ` ip dns-address primary <v> secondary <v>` |
 | `ntp` | all | `system-time ntp <utc> <s1> <s2> [<fetch>] [<s3> <s4> <s5>]` |
+| `lldp` | `enabled` | `lldp run` / `no lldp run` |
+
+Before any of these, the module reads the state it is about to compare:
+
+| Block | Read command | Compared by |
+|---|---|---|
+| `system` | `show system-info` | `parse_system_info()` |
+| `dns`, `ntp`, `lldp` | `show running-config` | `parse_running_config()` |
+
+Both reads run in privileged mode, before config mode, and in check mode too.
 
 ---
 
@@ -142,8 +157,8 @@ That is all — no `send_command` or check-mode changes needed.
 
 ### Step 3 — smoke-test locally without a switch
 
-In check mode `read_system_info()` is not called, so a `None` connection is
-fine:
+Passing a `None` connection is fine: the readers return `{}` without touching
+it, so the value counts as unknown and the planned command is reported:
 
 ```python
 from plugins.module_utils.collector import ResultCollector
@@ -155,9 +170,10 @@ set_general_information(
     None, {"domain_name": "corp.example"}, collector, check_mode=True
 )
 step = collector._steps[-1]
-assert "ip domain-name corp.example" in step["commands_sent"]
+assert "ip domain-name corp.example" in step["commands"]
+assert step["commands_sent"] == []
 assert step["changed"] is True
-print(step["commands_sent"])
+print(step["commands"])
 # ['ip domain-name corp.example']
 ```
 
@@ -177,8 +193,10 @@ python3 -c "import ast, pathlib; ast.parse(pathlib.Path('plugins/modules/jetstre
   Helpers record results with `collector.add_step()` and return; do not add
   new exit points in helpers.
 - A field at its default value must not emit a CLI command.
-- In check mode, never call `send_command`; record `changed: False` and the
-  planned command instead.
+- In check mode, never send a configuration command. The `show` reads are
+  allowed (they are what let check mode predict correctly); record `changed`
+  for what would change, the planned command under `commands`, and keep
+  `commands_sent` empty.
 - No new `required: True` fields — every field must have a sensible default.
 
 ---
@@ -221,10 +239,11 @@ planned commands in `steps` but not in `commands_sent`.
 
 ## Check mode
 
-Every helper receives `check_mode` (via `module.check_mode`). When `True`, it
-records the command with `changed: False` and returns without calling
-`send_command`. `set_general_information` also skips the `show system-info`
-read in check mode.
+Every helper receives `check_mode` (via `module.check_mode`). The state reads
+run first, in both modes, so the helper knows whether the switch already
+matches. When `check_mode` is `True` the helper records the planned command
+and `changed` for what *would* differ, keeps `commands_sent` empty, and
+returns without sending anything to the device.
 
 ---
 
@@ -233,6 +252,8 @@ read in check mode.
 - **NTP docs/code mismatch.** `ntp` is documented as "accepted but not applied
   yet", yet `configure_ntp()` applies it when `type == "ntp"` and `ntp_utc` +
   2+ servers + `ntp_fetch_time` are all set.
-- **No read-before-write for DNS.** `configure_dns()` always pushes when
-  `primary` is given; only `set_general_information` reads current state first.
+- **Reads are heuristic.** `read_running_config()` recognises
+  `ip dns-address ...`, `system-time ntp ...` and `lldp`/`lldp run`/
+  `no lldp run` lines. Anything else, including an LLDP state the switch
+  does not print, counts as unknown and the command is sent anyway.
 - **No `state` param** — the module always applies the desired config.

@@ -2,10 +2,15 @@
 
 `lachlanstone.jetstream.jetstream_system` sets general system settings on TP-Link JetStream (Omada) switches: hostname, location, contact, DNS servers, NTP and global LLDP. Every block is optional; only the blocks you give are applied.
 
-Idempotence differs by block:
+Every block reads the switch first and only sends a command when the requested
+value differs from what is running:
 
-- `system` (hostname, location, contact) reads the switch first and skips values that already match.
-- `dns`, `ntp` and `lldp` do not read the switch. They send their command on every run and always report `changed: true`.
+- `system` compares against `show system-info`.
+- `dns`, `ntp` and `lldp` compare against `show running-config`.
+
+If a read fails or nothing parses, the module falls back to applying the value
+you asked for. The same reads run in check mode, so `changed` reflects what
+would actually change.
 
 ## Quick start
 
@@ -48,7 +53,7 @@ An option you leave out, or set to an empty string, is not managed.
 | `location` | str | `location <value>` |
 | `contact` | str | `contact-info <value>` |
 
-Before sending, the module runs `show system-info` and compares. A value that already matches is skipped. If the output can't be read or parsed, the module applies every value you gave.
+Before sending, the module runs `show system-info` and compares. A value that already matches is skipped. The read also runs in check mode. If the output can't be read or parsed, the module applies every value you gave.
 
 ### `dns`
 
@@ -57,7 +62,7 @@ Before sending, the module runs `show system-info` and compares. A value that al
 | `primary` | str | Primary DNS server. |
 | `secondary` | str | Secondary DNS server. Requires `primary`. |
 
-Sends `ip dns-address primary <primary>`, with ` secondary <secondary>` appended when given. `secondary` alone fails the task. To change only the secondary server, repeat `primary` as well.
+Sends `ip dns-address primary <primary>`, with ` secondary <secondary>` appended when given. The command is skipped when `show running-config` already holds that primary (and secondary, when you gave one). `secondary` alone fails the task. To change only the secondary server, repeat `primary` as well.
 
 ### `ntp`
 
@@ -70,7 +75,7 @@ Applied only when `type: ntp`. Any other `type` is ignored silently, and so is o
 | `ntp_servers` | list[str] | At least 2 servers, up to 5. Servers past the fifth are ignored. Required. |
 | `ntp_fetch_time` | int | Polling interval in minutes. Required. |
 
-Sends `system-time ntp <ntp_utc> <server1> <server2> <ntp_fetch_time> [<server3> ... <server5>]`.
+Sends `system-time ntp <ntp_utc> <server1> <server2> <ntp_fetch_time> [<server3> ... <server5>]`. The command is skipped when `show running-config` already holds that UTC offset, server list and fetch time; `UTC`, `GMT` and `+00:00` count as the same offset.
 
 ### `lldp`
 
@@ -78,26 +83,29 @@ Sends `system-time ntp <ntp_utc> <server1> <server2> <ntp_fetch_time> [<server3>
 |---|---|---|
 | `enabled` | bool | `true` sends `lldp run`, `false` sends `no lldp run`. Omit to leave LLDP alone. |
 
+The command is skipped when `show running-config` already states the requested state (`lldp` or `lldp run` for enabled, `no lldp run` for disabled). If the config says nothing about LLDP, the module treats the state as unknown and applies the command.
+
 ## What happens on each run
 
-1. **Connect.** The module logs in over SSH and enters privileged then config mode.
-2. **Apply, in this order:** `system`, `dns`, `ntp`, `lldp`. Each block records one step (`set_general_information`, `configure_dns`, `configure_ntp`, `configure_lldp`). `system` always records a step. The others record one only when you supplied them (and, for `ntp`, `type: ntp`).
-3. **Report.** If any step failed, the task fails with that step's message. Commands from earlier blocks have already been sent by then and are not rolled back.
+1. **Connect.** The module logs in over SSH and enters privileged mode.
+2. **Read.** `show system-info` (when `system` is given) and `show running-config` (when `dns`, `ntp` or `lldp` is given) run first, in privileged mode, so the module knows the current state. In check mode these reads are the only commands sent.
+3. **Apply, in this order:** `system`, `dns`, `ntp`, `lldp`, each in config mode and only where the read showed a difference. Each block records one step (`set_general_information`, `configure_dns`, `configure_ntp`, `configure_lldp`). `system` always records a step. The others record one only when you supplied them (and, for `ntp`, `type: ntp`).
+4. **Report.** If any step failed, the task fails with that step's message. Commands from earlier blocks have already been sent by then and are not rolled back.
 
 Nothing is read back after the change to confirm it.
 
 ## Check mode
 
-`--check` connects but sends no configuration commands, and `commands_sent` stays empty.
+`--check` connects, runs the reads above, and sends no configuration command. `commands_sent` and `cmd` stay empty.
 
-- `system`: the switch is not read, so every value you gave is counted as a change. `changed` is `true`, even if the switch already matches.
-- `dns`, `ntp`, `lldp`: the step reports `changed: false`. The command it would send is in the step's `commands` at `-vvv` and up.
+- The switch is read first, so `changed` is `true` only when a value differs from the switch, and `false` when everything already matches.
+- The command that would be sent is in the step's `commands` at `-vvv` and up.
 
 ## Return values
 
 | Key | When | Contents |
 |---|---|---|
-| `changed` | always | `true` if any step changed something (see Check mode). |
+| `changed` | always | `true` if any step changed something, or would change it in check mode (see Check mode). |
 | `msg` | always | Message of the last step recorded. |
 | `switch` | always | Host the module connected to. |
 | `current_state` | always | Name of the last step recorded. |
@@ -108,7 +116,7 @@ Nothing is read back after the change to confirm it.
 | `commands` in each step | `-vvv` and up | Commands the step sent or, in check mode, would send. Steps also carry `command`, and `system_info` where present. |
 | `commands_sent` | `-vvvv` | Every command actually sent, in order. |
 
-`system_info` is returned only when `system` is given or already collected. The `system` step's `msg` is `Configured system info: hostname=..., location=..., contact=...` when something changed, and `No system info provided, nothing to configure` when nothing did, including when every value already matched.
+`system_info` is returned only when `system` is given or already collected. The `system` step's `msg` is `Configured system info: hostname=..., location=..., contact=...` when something changed, `System info already matches the switch, nothing to configure` when you gave values the switch already has, and `No system info provided, nothing to configure` when you gave none.
 
 ### Using the results
 
@@ -137,8 +145,7 @@ Any connection or command exception also fails the task with the exception text.
 
 ## Limitations
 
-- **`dns`, `ntp`, `lldp` are not idempotent.** They resend their command each run and report `changed: true`.
-- **Check mode over-reports `system` changes.** The switch isn't read in check mode.
+- **State comes from parsing, not from a read-back.** The module trusts `show system-info` and `show running-config`; it never re-reads after applying. If the switch prints something unexpected (for example no LLDP line), the state counts as unknown and the command is sent again.
 - **Values aren't validated.** Server addresses, UTC offsets and hostnames are sent as given. The switch decides whether they are valid.
 - **Empty strings can't clear a setting.** An empty or omitted value is skipped.
 - **Saving is separate.** Changes go to the running config. Use `jetstream_save` to persist them.
