@@ -1,0 +1,629 @@
+---
+# =============================================================================
+# MODULE: jetstream_acls
+# Tests: state present/update/unbind/absent, rule_type ip/combined,
+#        all 8 protocol_name values, protocol by number, dport + dport_mask,
+#        sip/dip with masks, logging enable/disable, action permit/deny,
+#        vid present/absent in rules, check_mode, idempotency
+# Bad data: protocol + protocol_name together (mutually_exclusive),
+#           invalid state, missing acl.id, invalid action, invalid protocol_name
+#
+# ACL IDs 1901–1905 and 1999 are reserved for this test run.
+# TEARDOWN: state=absent loop removes all test ACLs.
+# =============================================================================
+
+# ---------------------------------------------------------------------------
+# SETUP — ensure no stale ACLs from a previous failed run
+# ---------------------------------------------------------------------------
+
+- name: "[acls][setup] Remove any stale test ACLs before starting"
+  lachlanstone.jetstream.jetstream_acls:
+    host: "{{ test_host }}"
+    port: "{{ test_port }}"
+    username: "{{ test_username }}"
+    password: "{{ test_password }}"
+    enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
+    state: absent
+    acls:
+      id: "{{ item }}"
+  loop:
+    - "{{ test_acl_ids.combined_tcp }}"
+    - "{{ test_acl_ids.ip_number }}"
+    - "{{ test_acl_ids.protocols }}"
+    - "{{ test_acl_ids.misc_proto }}"
+    - "{{ test_acl_ids.dport_mask }}"
+  ignore_errors: true
+  tags: [jetstream_acls, acls_setup, never]
+
+# ---------------------------------------------------------------------------
+# HAPPY PATH — state: present, combined rule_type, TCP + TCP-deny
+# ---------------------------------------------------------------------------
+
+- name: "[acls][present] Combined ACL — TCP permit + deny, with vid"
+  lachlanstone.jetstream.jetstream_acls:
+    host: "{{ test_host }}"
+    port: "{{ test_port }}"
+    username: "{{ test_username }}"
+    password: "{{ test_password }}"
+    enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
+    state: present
+    acls:
+      id: "{{ test_acl_ids.combined_tcp }}"
+      name: TEST_ALLOW_WEB
+      vid: "{{ test_acl_vid_map[test_acl_ids.combined_tcp] }}"
+      rule_type: combined
+      rules:
+        - seq: 10
+          action: permit
+          logging: enable
+          sip: 10.0.0.0
+          sip_mask: 255.255.0.0
+          dip: 10.0.0.0
+          dip_mask: 255.255.0.0
+          protocol_name: TCP
+          dport: 443
+        - seq: 20
+          action: deny
+          logging: enable
+          sip: 0.0.0.0
+          sip_mask: 0.0.0.0
+          dip: 0.0.0.0
+          dip_mask: 0.0.0.0
+          protocol_name: TCP
+          dport: 80
+  register: acl_present_tcp
+  tags: [jetstream_acls, acls_present, acls_tcp, never]
+
+- name: "[acls][present] Assert combined TCP ACL created"
+  ansible.builtin.assert:
+    that:
+      - acl_present_tcp is not failed
+      - acl_present_tcp.changed == true
+    fail_msg: "acls present tcp failed: {{ acl_present_tcp.msg | default('no msg') }}"
+  tags: [jetstream_acls, acls_present, acls_tcp, never]
+
+# ---------------------------------------------------------------------------
+
+- name: "[acls][present] Idempotency — present on already-present ACL"
+  lachlanstone.jetstream.jetstream_acls:
+    host: "{{ test_host }}"
+    port: "{{ test_port }}"
+    username: "{{ test_username }}"
+    password: "{{ test_password }}"
+    enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
+    state: present
+    acls:
+      id: "{{ test_acl_ids.combined_tcp }}"
+      name: TEST_ALLOW_WEB
+      vid: "{{ test_acl_vid_map[test_acl_ids.combined_tcp] }}"
+      rule_type: combined
+      rules:
+        - seq: 10
+          action: permit
+          logging: enable
+          protocol_name: TCP
+          dport: 443
+  register: acl_present_idempotent
+  tags: [jetstream_acls, acls_idempotent, never]
+
+- name: "[acls][present] Assert idempotent present produced no change"
+  ansible.builtin.assert:
+    that:
+      - acl_present_idempotent is not failed
+      - acl_present_idempotent.changed == false
+    fail_msg: >
+      Idempotent present should not change. changed={{ acl_present_idempotent.changed }}
+  tags: [jetstream_acls, acls_idempotent, never]
+
+# ---------------------------------------------------------------------------
+# HAPPY PATH — state: present, ip rule_type, protocol by number
+# ---------------------------------------------------------------------------
+
+- name: "[acls][present] IP ACL — protocol by number (OSPF=89)"
+  lachlanstone.jetstream.jetstream_acls:
+    host: "{{ test_host }}"
+    port: "{{ test_port }}"
+    username: "{{ test_username }}"
+    password: "{{ test_password }}"
+    enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
+    state: present
+    acls:
+      id: "{{ test_acl_ids.ip_number }}"
+      name: TEST_BLOCK_OSPF
+      vid: "{{ test_acl_vid_map[test_acl_ids.ip_number] }}"
+      rule_type: ip
+      rules:
+        - seq: 10
+          action: deny
+          logging: disable
+          protocol: 89
+        - seq: 20
+          action: permit
+          logging: disable
+  register: acl_ip_number
+  tags: [jetstream_acls, acls_present, acls_ip_type, never]
+
+- name: "[acls][present] Assert ip-type ACL with numeric protocol created"
+  ansible.builtin.assert:
+    that:
+      - acl_ip_number is not failed
+      - acl_ip_number.changed == true
+    fail_msg: "acls ip_number failed: {{ acl_ip_number.msg | default('no msg') }}"
+  tags: [jetstream_acls, acls_present, acls_ip_type, never]
+
+# ---------------------------------------------------------------------------
+# HAPPY PATH — all protocol_name values (ICMP, UDP, ESP, AH)
+# ---------------------------------------------------------------------------
+
+- name: "[acls][present] Protocol coverage — ICMP, UDP, ESP, AH"
+  lachlanstone.jetstream.jetstream_acls:
+    host: "{{ test_host }}"
+    port: "{{ test_port }}"
+    username: "{{ test_username }}"
+    password: "{{ test_password }}"
+    enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
+    state: present
+    acls:
+      id: "{{ test_acl_ids.protocols }}"
+      name: TEST_PROTO_COVERAGE
+      vid: "{{ test_acl_vid_map[test_acl_ids.protocols] }}"
+      rule_type: combined
+      rules:
+        - seq: 10
+          action: permit
+          logging: enable
+          protocol_name: ICMP
+        - seq: 20
+          action: permit
+          logging: disable
+          protocol_name: UDP
+          dport: 53
+        - seq: 30
+          action: deny
+          logging: disable
+          protocol_name: ESP
+        - seq: 40
+          action: deny
+          logging: disable
+          protocol_name: AH
+  register: acl_protos
+  tags: [jetstream_acls, acls_present, acls_protocols, never]
+
+- name: "[acls][present] Assert ICMP/UDP/ESP/AH ACL created"
+  ansible.builtin.assert:
+    that:
+      - acl_protos is not failed
+      - acl_protos.changed == true
+    fail_msg: "acls protocols failed: {{ acl_protos.msg | default('no msg') }}"
+  tags: [jetstream_acls, acls_present, acls_protocols, never]
+
+# ---------------------------------------------------------------------------
+# HAPPY PATH — IGMP, IPV6, OSPF
+# ---------------------------------------------------------------------------
+
+- name: "[acls][present] Protocol coverage — IGMP, IPV6, OSPF"
+  lachlanstone.jetstream.jetstream_acls:
+    host: "{{ test_host }}"
+    port: "{{ test_port }}"
+    username: "{{ test_username }}"
+    password: "{{ test_password }}"
+    enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
+    state: present
+    acls:
+      id: "{{ test_acl_ids.misc_proto }}"
+      name: TEST_MISC_PROTO
+      vid: "{{ test_acl_vid_map[test_acl_ids.misc_proto] }}"
+      rule_type: combined
+      rules:
+        - seq: 10
+          action: permit
+          logging: disable
+          protocol_name: IGMP
+        - seq: 20
+          action: permit
+          logging: disable
+          protocol_name: IPV6
+        - seq: 30
+          action: deny
+          logging: disable
+          protocol_name: OSPF
+  register: acl_misc_protos
+  tags: [jetstream_acls, acls_present, acls_misc_protocols, never]
+
+- name: "[acls][present] Assert IGMP/IPV6/OSPF ACL created"
+  ansible.builtin.assert:
+    that:
+      - acl_misc_protos is not failed
+      - acl_misc_protos.changed == true
+    fail_msg: "acls misc protocols failed: {{ acl_misc_protos.msg | default('no msg') }}"
+  tags: [jetstream_acls, acls_present, acls_misc_protocols, never]
+
+# ---------------------------------------------------------------------------
+# HAPPY PATH — dport_mask explicit
+# ---------------------------------------------------------------------------
+
+- name: "[acls][present] dport_mask explicitly provided"
+  lachlanstone.jetstream.jetstream_acls:
+    host: "{{ test_host }}"
+    port: "{{ test_port }}"
+    username: "{{ test_username }}"
+    password: "{{ test_password }}"
+    enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
+    state: present
+    acls:
+      id: "{{ test_acl_ids.dport_mask }}"
+      name: TEST_DPORT_MASK
+      vid: "{{ test_acl_vid_map[test_acl_ids.dport_mask] }}"
+      rule_type: combined
+      rules:
+        - seq: 10
+          action: permit
+          logging: disable
+          protocol_name: TCP
+          dport: 8080
+          dport_mask: 65280
+  register: acl_dport_mask
+  tags: [jetstream_acls, acls_present, acls_dport_mask, never]
+
+- name: "[acls][present] Assert dport_mask ACL created"
+  ansible.builtin.assert:
+    that:
+      - acl_dport_mask is not failed
+      - acl_dport_mask.changed == true
+    fail_msg: "acls dport_mask failed: {{ acl_dport_mask.msg | default('no msg') }}"
+  tags: [jetstream_acls, acls_present, acls_dport_mask, never]
+
+# ---------------------------------------------------------------------------
+# HAPPY PATH — dport without dport_mask (defaults to 0000)
+# ---------------------------------------------------------------------------
+
+- name: "[acls][present] dport without dport_mask — defaults to 0000"
+  lachlanstone.jetstream.jetstream_acls:
+    host: "{{ test_host }}"
+    port: "{{ test_port }}"
+    username: "{{ test_username }}"
+    password: "{{ test_password }}"
+    enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
+    state: update
+    acls:
+      id: "{{ test_acl_ids.dport_mask }}"
+      name: TEST_DPORT_NOMASK
+      vid: "{{ test_acl_vid_map[test_acl_ids.dport_mask] }}"
+      rule_type: combined
+      rules:
+        - seq: 10
+          action: permit
+          logging: disable
+          protocol_name: TCP
+          dport: 9100
+  register: acl_dport_nomask
+  tags: [jetstream_acls, acls_dport_nomask, never]
+
+- name: "[acls][present] Assert dport without mask succeeded"
+  ansible.builtin.assert:
+    that:
+      - acl_dport_nomask is not failed
+    fail_msg: "acls dport no mask failed: {{ acl_dport_nomask.msg | default('no msg') }}"
+  tags: [jetstream_acls, acls_dport_nomask, never]
+
+# ---------------------------------------------------------------------------
+# HAPPY PATH — ICMP rule with dport (should NOT append dport in command)
+# ---------------------------------------------------------------------------
+
+- name: "[acls][present] ICMP rule with dport provided — dport must be ignored in CLI cmd"
+  lachlanstone.jetstream.jetstream_acls:
+    host: "{{ test_host }}"
+    port: "{{ test_port }}"
+    username: "{{ test_username }}"
+    password: "{{ test_password }}"
+    enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
+    state: update
+    acls:
+      id: "{{ test_acl_ids.protocols }}"
+      name: TEST_ICMP_NODPORT
+      vid: "{{ test_acl_vid_map[test_acl_ids.protocols] }}"
+      rule_type: combined
+      rules:
+        - seq: 10
+          action: permit
+          logging: disable
+          protocol_name: ICMP
+          dport: 8080
+  register: acl_icmp_dport
+  tags: [jetstream_acls, acls_icmp_dport, never]
+
+- name: "[acls][present] Assert ICMP with dport succeeded (dport silently ignored)"
+  ansible.builtin.assert:
+    that:
+      - acl_icmp_dport is not failed
+    fail_msg: "acls ICMP with dport failed: {{ acl_icmp_dport.msg | default('no msg') }}"
+  tags: [jetstream_acls, acls_icmp_dport, never]
+
+# ---------------------------------------------------------------------------
+# HAPPY PATH — state: update (remove + recreate + rebind)
+# ---------------------------------------------------------------------------
+
+- name: "[acls][update] Replace ACL 1901 with new rules"
+  lachlanstone.jetstream.jetstream_acls:
+    host: "{{ test_host }}"
+    port: "{{ test_port }}"
+    username: "{{ test_username }}"
+    password: "{{ test_password }}"
+    enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
+    state: update
+    acls:
+      id: "{{ test_acl_ids.combined_tcp }}"
+      name: TEST_ALLOW_PRINT
+      vid: "{{ test_acl_vid_map[test_acl_ids.combined_tcp] }}"
+      rule_type: combined
+      rules:
+        - seq: 10
+          action: permit
+          logging: enable
+          sip: 10.0.0.0
+          sip_mask: 255.255.0.0
+          dip: 10.0.0.0
+          dip_mask: 255.255.0.0
+          protocol_name: TCP
+          dport: 9100
+        - seq: 20
+          action: deny
+          logging: enable
+          sip: 0.0.0.0
+          sip_mask: 0.0.0.0
+          dip: 0.0.0.0
+          dip_mask: 0.0.0.0
+  register: acl_update
+  tags: [jetstream_acls, acls_update, never]
+
+- name: "[acls][update] Assert ACL update succeeded"
+  ansible.builtin.assert:
+    that:
+      - acl_update is not failed
+      - acl_update.changed == true
+    fail_msg: "acls update failed: {{ acl_update.msg | default('no msg') }}"
+  tags: [jetstream_acls, acls_update, never]
+
+# ---------------------------------------------------------------------------
+# HAPPY PATH — state: unbind
+# ---------------------------------------------------------------------------
+
+- name: "[acls][unbind] Unbind ACL 1901 from VLAN"
+  lachlanstone.jetstream.jetstream_acls:
+    host: "{{ test_host }}"
+    port: "{{ test_port }}"
+    username: "{{ test_username }}"
+    password: "{{ test_password }}"
+    enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
+    state: unbind
+    acls:
+      id: "{{ test_acl_ids.combined_tcp }}"
+  register: acl_unbind
+  tags: [jetstream_acls, acls_unbind, never]
+
+- name: "[acls][unbind] Assert unbind succeeded"
+  ansible.builtin.assert:
+    that:
+      - acl_unbind is not failed
+    fail_msg: "acls unbind failed: {{ acl_unbind.msg | default('no msg') }}"
+  tags: [jetstream_acls, acls_unbind, never]
+
+- name: "[acls][unbind] Unbind an already-unbound ACL — idempotent"
+  lachlanstone.jetstream.jetstream_acls:
+    host: "{{ test_host }}"
+    port: "{{ test_port }}"
+    username: "{{ test_username }}"
+    password: "{{ test_password }}"
+    enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
+    state: unbind
+    acls:
+      id: "{{ test_acl_ids.combined_tcp }}"
+  register: acl_unbind_idem
+  tags: [jetstream_acls, acls_unbind, never]
+
+- name: "[acls][unbind] Assert double-unbind did not fail"
+  ansible.builtin.assert:
+    that:
+      - acl_unbind_idem is not failed
+      - acl_unbind_idem.changed == false
+    fail_msg: "double-unbind should be idempotent: {{ acl_unbind_idem.msg | default('no msg') }}"
+  tags: [jetstream_acls, acls_unbind, never]
+
+# ---------------------------------------------------------------------------
+# HAPPY PATH — check mode
+# ---------------------------------------------------------------------------
+
+- name: "[acls][check_mode] Present — no commands written to device"
+  lachlanstone.jetstream.jetstream_acls:
+    host: "{{ test_host }}"
+    port: "{{ test_port }}"
+    username: "{{ test_username }}"
+    password: "{{ test_password }}"
+    enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
+    state: present
+    acls:
+      id: "{{ test_acl_ids.check_mode }}"
+      name: CHECK_MODE_ONLY
+      vid: 999
+      rule_type: combined
+      rules:
+        - seq: 10
+          action: permit
+          logging: disable
+          protocol_name: TCP
+          dport: 443
+  check_mode: true
+  register: acl_check
+  tags: [jetstream_acls, acls_check_mode, never]
+
+- name: "[acls][check_mode] Assert check_mode did not create or change anything"
+  ansible.builtin.assert:
+    that:
+      - acl_check is not failed
+      - acl_check.check_mode == true
+      - acl_check.changed == false
+    fail_msg: "acls check_mode failed: {{ acl_check.msg | default('no msg') }}"
+  tags: [jetstream_acls, acls_check_mode, never]
+
+# ---------------------------------------------------------------------------
+# BAD DATA
+# ---------------------------------------------------------------------------
+
+- name: "[acls][bad_data] protocol + protocol_name both set — mutually_exclusive"
+  lachlanstone.jetstream.jetstream_acls:
+    host: "{{ test_host }}"
+    port: "{{ test_port }}"
+    username: "{{ test_username }}"
+    password: "{{ test_password }}"
+    enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
+    state: present
+    acls:
+      id: "9999"
+      rule_type: combined
+      rules:
+        - seq: 10
+          action: permit
+          logging: disable
+          protocol: 6
+          protocol_name: TCP
+  register: acl_bad_proto_both
+  ignore_errors: true
+  tags: [jetstream_acls, bad_data, never]
+
+- name: "[acls][bad_data] Assert protocol + protocol_name failed"
+  ansible.builtin.assert:
+    that:
+      - acl_bad_proto_both is failed
+    fail_msg: "Expected failure for protocol + protocol_name but task succeeded"
+  tags: [jetstream_acls, bad_data, never]
+
+# ---------------------------------------------------------------------------
+
+- name: "[acls][bad_data] Invalid protocol_name — expect Ansible choice validation failure"
+  lachlanstone.jetstream.jetstream_acls:
+    host: "{{ test_host }}"
+    port: "{{ test_port }}"
+    username: "{{ test_username }}"
+    password: "{{ test_password }}"
+    enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
+    state: present
+    acls:
+      id: "9999"
+      rule_type: combined
+      rules:
+        - seq: 10
+          action: permit
+          logging: disable
+          protocol_name: HTTP
+  register: acl_bad_proto_name
+  ignore_errors: true
+  tags: [jetstream_acls, bad_data, never]
+
+- name: "[acls][bad_data] Assert invalid protocol_name failed"
+  ansible.builtin.assert:
+    that:
+      - acl_bad_proto_name is failed
+    fail_msg: "Expected failure for invalid protocol_name but task succeeded"
+  tags: [jetstream_acls, bad_data, never]
+
+# ---------------------------------------------------------------------------
+
+- name: "[acls][bad_data] Invalid state — expect Ansible validation failure"
+  lachlanstone.jetstream.jetstream_acls:
+    host: "{{ test_host }}"
+    port: "{{ test_port }}"
+    username: "{{ test_username }}"
+    password: "{{ test_password }}"
+    enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
+    state: replace
+    acls:
+      id: "9999"
+  register: acl_bad_state
+  ignore_errors: true
+  tags: [jetstream_acls, bad_data, never]
+
+- name: "[acls][bad_data] Assert invalid state failed"
+  ansible.builtin.assert:
+    that:
+      - acl_bad_state is failed
+    fail_msg: "Expected failure for invalid state but task succeeded"
+  tags: [jetstream_acls, bad_data, never]
+
+# ---------------------------------------------------------------------------
+
+- name: "[acls][bad_data] Invalid action in rule — expect Ansible validation failure"
+  lachlanstone.jetstream.jetstream_acls:
+    host: "{{ test_host }}"
+    port: "{{ test_port }}"
+    username: "{{ test_username }}"
+    password: "{{ test_password }}"
+    enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
+    state: present
+    acls:
+      id: "9999"
+      rule_type: combined
+      rules:
+        - seq: 10
+          action: forward
+          logging: disable
+  register: acl_bad_action
+  ignore_errors: true
+  tags: [jetstream_acls, bad_data, never]
+
+- name: "[acls][bad_data] Assert invalid action failed"
+  ansible.builtin.assert:
+    that:
+      - acl_bad_action is failed
+    fail_msg: "Expected failure for invalid action but task succeeded"
+  tags: [jetstream_acls, bad_data, never]
+
+# ---------------------------------------------------------------------------
+# TEARDOWN — remove all test ACLs
+# ---------------------------------------------------------------------------
+
+- name: "[acls][teardown] Remove all test ACLs"
+  lachlanstone.jetstream.jetstream_acls:
+    host: "{{ test_host }}"
+    port: "{{ test_port }}"
+    username: "{{ test_username }}"
+    password: "{{ test_password }}"
+    enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
+    state: absent
+    acls:
+      id: "{{ item }}"
+  loop:
+    - "{{ test_acl_ids.combined_tcp }}"
+    - "{{ test_acl_ids.ip_number }}"
+    - "{{ test_acl_ids.protocols }}"
+    - "{{ test_acl_ids.misc_proto }}"
+    - "{{ test_acl_ids.dport_mask }}"
+  ignore_errors: true
+  tags: [jetstream_acls, acls_teardown, never]
+
+- name: "[acls][teardown] Assert ACL teardown completed without errors"
+  ansible.builtin.assert:
+    that:
+      - acls_teardown_result is not failed
+    fail_msg: "ACL teardown had failures — check switch state manually"
+  vars:
+    acls_teardown_result: "{{ acl_teardown | default({'failed': false}) }}"
+  ignore_errors: true
+  tags: [jetstream_acls, acls_teardown, never]

@@ -1,0 +1,67 @@
+---
+# =============================================================================
+# jetstream_tests — main task entry point
+#
+# Includes each module's test file. Use tags to run individual modules:
+#
+#   ansible-playbook site.yml --tags jetstream_command
+#   ansible-playbook site.yml --tags jetstream_acls
+#   ansible-playbook site.yml --tags bad_data
+#   ansible-playbook site.yml --tags all_modules
+#
+# HOW TAGS WORK HERE
+# ------------------
+# Tasks inside each included file carry `never` to prevent accidental runs.
+# The `apply` block below injects the module-specific tag AND `all_modules`
+# onto every task loaded by the include, so those tags override `never` and
+# allow both `--tags jetstream_X` and `--tags all_modules` to work correctly.
+# =============================================================================
+
+# - name: "Run jetstream_command tests"
+#   ansible.builtin.include_tasks:
+#     file: command.yml
+#     apply:
+#       tags: [jetstream_command, all_modules]
+#   tags: [jetstream_command, all_modules]
+
+- name: "Run jetstream_system tests"
+  ansible.builtin.include_tasks:
+    file: system.yml
+    apply:
+      tags: [jetstream_system, all_modules]
+  tags: [jetstream_system, all_modules]
+
+- name: "Run jetstream_vlans tests"
+  ansible.builtin.include_tasks:
+    file: vlans.yml
+    apply:
+      tags: [jetstream_vlans, all_modules]
+  tags: [jetstream_vlans, all_modules]
+
+- name: "Run jetstream_interfaces tests"
+  ansible.builtin.include_tasks:
+    file: interfaces.yml
+    apply:
+      tags: [jetstream_interfaces, all_modules]
+  tags: [jetstream_interfaces, all_modules]
+
+- name: "Run jetstream_user tests"
+  ansible.builtin.include_tasks:
+    file: user.yml
+    apply:
+      tags: [jetstream_user, all_modules]
+  tags: [jetstream_user, all_modules]
+
+- name: "Run jetstream_acls tests"
+  ansible.builtin.include_tasks:
+    file: acls.yml
+    apply:
+      tags: [jetstream_acls, all_modules]
+  tags: [jetstream_acls, all_modules]
+
+- name: "Run jetstream_save tests"
+  ansible.builtin.include_tasks:
+    file: save.yml
+    apply:
+      tags: [jetstream_save, all_modules]
+  tags: [jetstream_save, all_modules]

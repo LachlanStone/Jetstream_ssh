@@ -159,9 +159,6 @@ def main():
         supports_check_mode=False,
     )
 
-    if module.check_mode:
-        module.exit_json(changed=False, msg="Check mode - no commands executed")
-
     try:
         results = send_commands(module.params)
         module.exit_json(changed=False, commands=results)

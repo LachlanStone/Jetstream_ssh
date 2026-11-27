@@ -3,9 +3,9 @@
 This document is written for a future AI agent or developer picking up this module cold.
 Read it fully before touching any file.
 
-`jetstream_interfaces_v2` is the current, idempotent interface module. The
-original `jetstream_interfaces` is kept for backwards compatibility and is not
-extended — new fields go into `_v2` only.
+`jetstream_interfaces_v2` is the current interface module. The original
+`jetstream_interfaces` is kept for backwards compatibility and now shares the
+same diff/apply path; new fields go into `_v2` only.
 
 ---
 
@@ -269,8 +269,10 @@ Check mode records planned commands in `steps` but not in `commands_sent`.
 ## Check mode
 
 `configure_interface()` in the module receives `check_mode: bool`.
-When `True`, it records the command list with `changed: False` and returns
-without calling `send_command`. Step summaries appear at every verbosity level;
+When `True`, it records the delta's command list with `changed: True` when a
+real run would change the interface (`False` when it already matches), and
+returns without calling `send_command` or entering `config_mode()`. Step
+summaries appear at every verbosity level;
 the command preview appears only at verbosity 3 or higher. The builder still
 runs in check mode so the preview matches the commands that would run.
 

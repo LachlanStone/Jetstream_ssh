@@ -195,8 +195,9 @@ python3 -c "import ast, pathlib; ast.parse(pathlib.Path('plugins/modules/jetstre
   Helpers record results with `collector.add_step()` and return; do not add
   new exit points in helpers.
 - A field at its default value must not emit a CLI command.
-- In check mode, never call `send_command`; record `changed: False` and the
-  planned command instead.
+- In check mode, never call `send_command` and never enter `config_mode()`;
+  record `changed` for what would change, the planned command under `commands`,
+  and keep `commands_sent` empty.
 - ACL command order in a run is fixed: unbind → remove → create → rules → bind.
   Do not reorder the helper calls in `run_modules()`.
 - Binding must include a target:
@@ -253,16 +254,17 @@ in `commands_sent`.
 ## Check mode
 
 Every helper receives `check_mode` (via `module.check_mode`). When `True`, it
-records the command with `changed: False` and returns without calling
-`send_command`.
+records `changed` for what a real run would change and returns without calling
+`send_command` or entering `config_mode()`.
 
 ---
 
 ## Things not implemented (known limits)
 
-- **No per-rule diff.** `create_and_update_acl_rules` appends rules; it does
-  not read existing rules and skip ones already correct, and never removes or
-  updates individual rules despite the stale `TODO` comment.
-  `get_current_acls()` only parses `seq`, `action`, and `logging`.
+- **Per-rule diff is limited to `present`.** `create_and_update_acl_rules`
+  skips the whole rule step when every requested rule already exists with the
+  same fields; it does not remove or update individual rules.
+  `get_current_acls()` parses `seq`, `action`, `logging`, `vid`, `sip`/`dip`
+  masks, `protocol`, and `d-port`/`d-port-mask`. `update` still rebuilds the ACL.
 - **Fixed 5-second pause.** `time.sleep(5)` runs between rules — slow, but
   intentional for this hardware.

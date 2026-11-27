@@ -13,9 +13,8 @@ short_description: Configure VLANs and SVIs on TP-Link JetStream switches
 description:
   - Connects to a TP-Link JetStream (Omada) switch over SSH with Netmiko and creates VLANs with an
     optional name and optional VLAN interface (SVI) address.
-  - Commands are sent through the switch CLI, so the controller running the module needs network access to
-    the switch. The module does not read the current VLAN state first, so it always reports a change when it
-    sends commands.
+  - Reads VLAN and SVI state from C(show running-config) first and only sends the commands for settings
+    that differ, so it reports C(changed=false) when the VLANs already match the desired state.
 version_added: "0.1.0"
 author:
   - Lachlan Stone (@lachlanstone)
@@ -76,6 +75,9 @@ options:
         default: false
 notes:
   - Supports check mode.
+  - Reads C(show running-config) before writing. If no VLAN can be parsed, the module fails instead of applying changes from an unknown state.
+  - A name printed on a C(vlan 10-11) range is applied to every VLAN in that range.
+  - C(ip_dhcp=false) leaves an existing SVI address mode untouched; C(ip_dhcp=true) enables DHCP.
 """
 
 EXAMPLES = r"""
@@ -104,7 +106,7 @@ switch:
   returned: always
   type: str
 changed:
-  description: Whether any configuration command was sent.
+  description: Whether a real run would change (or did change) the switch; false in check mode when the state already matches.
   returned: always
   type: bool
 check_mode:
@@ -141,6 +143,10 @@ from ansible_collections.lachlanstone.jetstream.plugins.module_utils.config_mode
 )
 from ansible_collections.lachlanstone.jetstream.plugins.module_utils.vlans.vlan_builder import (
     build_vlan_commands,
+    build_vlan_delta,
+)
+from ansible_collections.lachlanstone.jetstream.plugins.module_utils.vlans.vlan_parsers import (
+    get_current_vlans,
 )
 from ansible_collections.lachlanstone.jetstream.plugins.module_utils.device import (
     build_device,
@@ -171,21 +177,39 @@ if logging_enabled and not logger.handlers:
 _CONFIG_PROMPT = CONFIG_PROMPT
 
 
-def configure_vlan(net_connect, vlan, collector, check_mode):
-    """Push one VLAN's commands to the device.
+def configure_vlan(net_connect, vlan, collector, check_mode, current=None):
+    """Push only the differing settings for one VLAN to the device.
 
-    Builds the CLI command list via ``build_vlan_commands``, then sends each
-    command through the existing Netmiko session.  In check mode the
-    commands are recorded but never sent.
+    Compares the desired entry with the parsed running-config state.  When
+    the VLAN already matches, no command is sent and the step is recorded as
+    unchanged.
 
     Args:
-        net_connect: Active Netmiko connection (already in config mode).
+        net_connect: Active Netmiko connection (already in config mode when
+            ``check_mode`` is False).
         vlan (dict): One VLAN entry from ``module.params['vlans']``.
         collector (ResultCollector): Shared result accumulator.
         check_mode (bool): When True, skip sending; report what would change.
+        current (dict|None): Parsed running-config entry for this VLAN.
     """
     vlan_id = vlan["vlan_id"]
-    cmds = build_vlan_commands(vlan)
+    settings = {key: value for key, value in vlan.items() if key != "vlan_id"}
+    delta = build_vlan_delta(vlan, current)
+
+    if delta is None:
+        collector.add_step(
+            name=f"configure_vlan:{vlan_id}",
+            step_result={
+                "changed": False,
+                "msg": f"VLAN {vlan_id}: already in desired state, no changes needed.",
+                "commands": [],
+                "settings": settings,
+                "stdout": "",
+            },
+        )
+        return
+
+    cmds = build_vlan_commands(delta)
     stdout_parts = []
 
     if check_mode:
@@ -194,10 +218,10 @@ def configure_vlan(net_connect, vlan, collector, check_mode):
         collector.add_step(
             name=f"configure_vlan:{vlan_id}",
             step_result={
-                "changed": False,
+                "changed": True,
                 "msg": msg,
                 "commands": cmds,
-                "settings": {key: value for key, value in vlan.items() if key != "vlan_id"},
+                "settings": settings,
                 "stdout": "",
             },
         )
@@ -236,7 +260,7 @@ def configure_vlan(net_connect, vlan, collector, check_mode):
             "msg": f"VLAN {vlan_id} configured.",
             "commands": cmds,
             "commands_sent": cmds,
-            "settings": {key: value for key, value in vlan.items() if key != "vlan_id"},
+            "settings": settings,
             "stdout": "\n".join(stdout_parts),
         },
     )
@@ -254,12 +278,25 @@ def run_module(module):
     )
 
     vlans = module.params.get("vlans") or []
+    if not vlans:
+        result = collector.return_info()
+        module.exit_json(**result)
+        return
 
     with ConnectHandler(**device) as net_connect:
         net_connect.enable()
-        net_connect.config_mode()
+        if not module.check_mode:
+            net_connect.config_mode()
+
+        current_vlans = get_current_vlans(net_connect)
         for vlan in vlans:
-            configure_vlan(net_connect, vlan, collector, module.check_mode)
+            configure_vlan(
+                net_connect,
+                vlan,
+                collector,
+                module.check_mode,
+                current=current_vlans.get(vlan["vlan_id"]),
+            )
 
     result = collector.return_info()
     module.exit_json(**result)

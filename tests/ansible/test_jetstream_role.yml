@@ -1,0 +1,38 @@
+---
+# =============================================================================
+# Jetstream integration test playbook
+#
+# Drives the jetstream_tests role against the inventory switch.
+#
+# Usage examples:
+#
+#   # Run all module tests
+#   ansible-playbook test_jetstream_role.yml --tags all_modules
+#
+#   # Run one module
+#   ansible-playbook test_jetstream_role.yml --tags jetstream_acls
+#
+#   # Run only bad-data/failure tests
+#   ansible-playbook test_jetstream_role.yml --tags bad_data
+#
+#   # Run a specific sub-test
+#   ansible-playbook test_jetstream_role.yml --tags acls_present
+#
+#   # Run with verbose output (adds steps detail at -vvv, commands_sent at -vvvv)
+#   ansible-playbook test_jetstream_role.yml --tags all_modules -vvv
+#
+# NOTE: All tasks inside the role are tagged `never`. You MUST pass at least
+# one of the tags above (or a specific test tag) to run anything.
+# =============================================================================
+
+- name: "Jetstream collection integration tests"
+  hosts: switch
+  connection: local
+  gather_facts: false
+
+  environment:
+    ANSIBLE_NET_TEXTFSM: "{{ playbook_dir }}/../../extras/ntc_templates"
+    NET_TEXTFSM: "{{ playbook_dir }}/../../extras/ntc_templates"
+
+  roles:
+    - role: jetstream_tests

@@ -256,6 +256,7 @@ def unbind_acl(net_connect, collector, module, acl):
 
     if module.params["state"] in ["unbind", "absent", "update"]:
         if module.check_mode:
+            changed = bool(acl.is_bound)
             msg = (
                 f"ACL {acl.id} would be unbound."
                 if acl.is_bound
@@ -323,11 +324,20 @@ def remove_acl(net_connect, collector, module, acl, current_acls):
 
     if module.params["state"] in ["absent", "update"]:
         if module.check_mode:
+            changed = bool(acl.is_present)
             msg = (
                 f"ACL {acl.id} would be removed."
                 if acl.is_present
                 else f"ACL {acl.id} is currently not present."
             )
+            if acl.is_present and isinstance(current_acls, dict):
+                # Simulate the removal so ``state=update`` can proceed to the
+                # create step without failing on the still-present ACL.
+                new_acls = {
+                    key: value
+                    for key, value in current_acls.items()
+                    if str(key) != str(acl.id)
+                }
         elif acl.is_present:
             send_command(net_connect, cmd=cmd)
             changed = True
@@ -423,7 +433,18 @@ def create_and_update_acl(net_connect, collector, module, acl, current_acls):
     elif acl.id not in current_acls:
         if module.params["state"] in ["present", "update"]:
             if module.check_mode:
+                changed = True
                 msg = f"ACL {acl.id} would be created."
+                if isinstance(current_acls, dict):
+                    new_acls = {
+                        **current_acls,
+                        str(acl.id): {
+                            "id": acl.id,
+                            "name": acl.name,
+                            "type": acl.rule_type,
+                            "rules": [],
+                        },
+                    }
             else:
                 send_command(net_connect, cmd=cmd)
                 changed = True
@@ -452,6 +473,67 @@ def create_and_update_acl(net_connect, collector, module, acl, current_acls):
             return new_acls
 
 
+def _logging_enabled(value):
+    """Interpret the module's string logging option, or a bool."""
+    if isinstance(value, str):
+        return value.strip().lower() == "enable"
+    return bool(value)
+
+
+def _desired_rule_fields(acl, rule):
+    """Return the comparable fields for one requested ACL rule."""
+    protocol = rule.protocol
+    if rule.protocol_name:
+        protocol = get_protocol_number(rule.protocol_name)
+
+    fields = {
+        "seq": rule.seq,
+        "action": rule.action,
+        "logging": "enable" if _logging_enabled(rule.logging) else "disable",
+    }
+    if acl.rule_type == "combined" and acl.vid:
+        fields["vid"] = int(acl.vid)
+    if rule.sip and rule.sip_mask:
+        fields["sip"] = rule.sip
+        fields["sip_mask"] = rule.sip_mask
+    if rule.dip and rule.dip_mask:
+        fields["dip"] = rule.dip
+        fields["dip_mask"] = rule.dip_mask
+    if protocol is not None:
+        fields["protocol"] = int(protocol)
+    if rule.dport and protocol in (6, 17):
+        fields["dport"] = str(rule.dport)
+        fields["dport_mask"] = str(rule.dport_mask or "0000")
+    return fields
+
+
+def _rules_already_configured(acl, current_acls):
+    """Return True when every requested rule already exists on the ACL."""
+    entry = {}
+    if isinstance(current_acls, dict):
+        entry = current_acls.get(str(acl.id)) or current_acls.get(acl.id) or {}
+    rules = entry.get("rules") if isinstance(entry, dict) else []
+    if not isinstance(rules, list):
+        return False
+
+    for rule in acl.rules or []:
+        desired = _desired_rule_fields(acl, rule)
+        matched = False
+        for current in rules:
+            if not isinstance(current, dict):
+                continue
+            # An omitted ``logging`` in the CLI output means the default,
+            # which is ``disable``.
+            normalized = dict(current)
+            normalized.setdefault("logging", "disable")
+            if all(normalized.get(key) == value for key, value in desired.items()):
+                matched = True
+                break
+        if not matched:
+            return False
+    return True
+
+
 def create_and_update_acl_rules(net_connect, collector, module, acl, current_acls):
     logger.info(f"Creating and updating rules for ACL {acl.id}...")
     if not acl.rules:
@@ -469,13 +551,30 @@ def create_and_update_acl_rules(net_connect, collector, module, acl, current_acl
         )
         return current_acls
     elif acl.rules:
+        if module.params["state"] == "present" and _rules_already_configured(
+            acl, current_acls
+        ):
+            msg = f"Rules for ACL {acl.id} are already configured."
+            logger.info(msg)
+            collector.add_step(
+                name=create_and_update_acl_rules.__name__,
+                step_result={
+                    "changed": False,
+                    "msg": msg,
+                    "command": "",
+                    "acl_present": True,
+                    "acl_bound": acl.is_bound,
+                },
+            )
+            return current_acls
+
         rule_commands_ran_list = []
         for rule in acl.rules:
             logger.info(f"Processing rule {rule.seq} for ACL {acl.id}...")
             seq = rule.seq
             action = rule.action
             cmd = f"access-list {acl.rule_type} {acl.id} rule {seq} {action}"
-            if rule.logging:
+            if _logging_enabled(rule.logging):
                 cmd += " logging enable"
             else:
                 cmd += " logging disable"
@@ -515,7 +614,7 @@ def create_and_update_acl_rules(net_connect, collector, module, acl, current_acl
                 rule_commands_ran_list.append(cmd)
                 logger.info(f"Rule {seq} for ACL {acl.id} would be configured.")
 
-        changed = False if module.check_mode else True
+        changed = True
         msg = (
             f"Rules for ACL {acl.id} have been configured."
             if not module.check_mode
@@ -561,11 +660,11 @@ def bind_acls(net_connect, collector, module, acl):
         msg = f"ACL {acl.id} is already bound."
         logger.info(msg)
     else:
+        is_changed = True
         if module.check_mode:
             msg = f"ACL {acl.id} would be bound."
         else:
             send_command(net_connect, cmd=cmd)
-            is_changed = True
             msg = f"ACL {acl.id} has been bound."
         logger.info(msg)
 
@@ -587,8 +686,10 @@ def run_modules(module):
     device = build_device(module)
     requested_acls = module.params.get("acls") or []
     with ConnectHandler(**device) as net_connect:
-        config = net_connect.config_mode()
-        logger.info(f"Entered configuration mode: {config}")
+        net_connect.enable()
+        if not module.check_mode:
+            config = net_connect.config_mode()
+            logger.info(f"Entered configuration mode: {config}")
         bound_acls = get_bound_access_lists(net_connect)
         current_acls = get_current_acls(net_connect)
 
@@ -613,12 +714,9 @@ def run_modules(module):
         unbind_acl(
             net_connect, collector, module, acl
         )  # function: Unbinds the ACL from the device if it is currently bound
-        if (
-            module.params["state"] in ("absent", "update")
-            and not module.check_mode
-        ):
-            # The snapshot is stale after a successful unbind; let the final
-            # bind step run again even though the ACL was bound before this run.
+        if module.params["state"] in ("absent", "update"):
+            # The snapshot is stale after an unbind (real or simulated); let the
+            # final bind step run again even though the ACL was bound before.
             acl.is_bound = False
 
         # Module: Remove the ACL if it is currently present and the state is set to 'absent' or 'update'

@@ -90,8 +90,9 @@ options:
     default: present
   update_password:
     description:
-      - C(always) will update the user and password even if the user already exists.
-      - C(on_create) will only configure the user if they do not already exist.
+      - C(always) updates the user and password on every run. A password is
+        required when the user already exists.
+      - C(on_create) configures the user only when they do not already exist.
     type: str
     choices: [always, on_create]
     default: always
@@ -472,7 +473,8 @@ def run_module(module):
 
     with ConnectHandler(**device) as net_connect:
         net_connect.enable()
-        net_connect.config_mode()
+        if not module.check_mode:
+            net_connect.config_mode()
         changed = manage_users(
             net_connect=net_connect,
             user_entries=user_entries,

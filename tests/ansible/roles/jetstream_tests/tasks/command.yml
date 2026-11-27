@@ -1,0 +1,220 @@
+---
+# =============================================================================
+# MODULE: jetstream_command
+# Tests: single command, command list, all command_level choices,
+#        fallback default command, return structure assertions
+# Bad data: invalid command_level (arg validation), check_mode no-op
+# =============================================================================
+
+# ---------------------------------------------------------------------------
+# HAPPY PATH
+# ---------------------------------------------------------------------------
+
+- name: "[command] Single command at enable level"
+  lachlanstone.jetstream.jetstream_command:
+    host: "{{ test_host }}"
+    port: "{{ test_port }}"
+    username: "{{ test_username }}"
+    password: "{{ test_password }}"
+    enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
+    command_level: enable
+    command: "show system-info"
+  register: cmd_single
+  tags: [jetstream_command, cmd_single, never]
+
+- name: "[command] Assert single command — not failed"
+  ansible.builtin.assert:
+    that:
+      - cmd_single is not failed
+      - cmd_single.commands is defined
+      - cmd_single.commands | length == 1
+      - cmd_single.commands[0].command == "show system-info"
+      - cmd_single.commands[0].stdout is defined
+      - cmd_single.commands[0].stdout_lines is defined
+      - cmd_single.commands[0].textfsm_parsed is defined
+    fail_msg: "command single failed: {{ cmd_single.msg | default('no msg') }}"
+  tags: [jetstream_command, cmd_single, never]
+
+# ---------------------------------------------------------------------------
+
+- name: "[command] Multiple commands at enable level"
+  lachlanstone.jetstream.jetstream_command:
+    host: "{{ test_host }}"
+    port: "{{ test_port }}"
+    username: "{{ test_username }}"
+    password: "{{ test_password }}"
+    enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
+    command_level: enable
+    commands:
+      - "show system-info"
+      - "show vlan"
+      - "show users"
+  register: cmd_multi
+  tags: [jetstream_command, cmd_multi, never]
+
+- name: "[command] Assert multi-command — correct count and structure"
+  ansible.builtin.assert:
+    that:
+      - cmd_multi is not failed
+      - cmd_multi.commands | length == 3
+      - cmd_multi.commands[0].command == "show system-info"
+      - cmd_multi.commands[1].command == "show vlan"
+      - cmd_multi.commands[2].command == "show users"
+    fail_msg: "command multi failed: {{ cmd_multi.msg | default('no msg') }}"
+  tags: [jetstream_command, cmd_multi, never]
+
+# ---------------------------------------------------------------------------
+
+- name: "[command] command_level: cli (user mode)"
+  lachlanstone.jetstream.jetstream_command:
+    host: "{{ test_host }}"
+    port: "{{ test_port }}"
+    username: "{{ test_username }}"
+    password: "{{ test_password }}"
+    enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
+    command_level: cli
+    command: "show version"
+  register: cmd_cli
+  tags: [jetstream_command, cmd_cli_level, never]
+
+- name: "[command] Assert cli-level command succeeded"
+  ansible.builtin.assert:
+    that:
+      - cmd_cli is not failed
+      - cmd_cli.commands | length == 1
+    fail_msg: "command cli level failed: {{ cmd_cli.msg | default('no msg') }}"
+  tags: [jetstream_command, cmd_cli_level, never]
+
+# ---------------------------------------------------------------------------
+
+- name: "[command] command_level: config"
+  lachlanstone.jetstream.jetstream_command:
+    host: "{{ test_host }}"
+    port: "{{ test_port }}"
+    username: "{{ test_username }}"
+    password: "{{ test_password }}"
+    enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
+    command_level: config
+    command: "show running-config"
+  register: cmd_config
+  tags: [jetstream_command, cmd_config_level, never]
+
+- name: "[command] Assert config-level command succeeded"
+  ansible.builtin.assert:
+    that:
+      - cmd_config is not failed
+      - cmd_config.commands | length == 1
+    fail_msg: "command config level failed: {{ cmd_config.msg | default('no msg') }}"
+  tags: [jetstream_command, cmd_config_level, never]
+
+# ---------------------------------------------------------------------------
+
+- name: "[command] No command or commands provided — falls back to show system-info"
+  lachlanstone.jetstream.jetstream_command:
+    host: "{{ test_host }}"
+    port: "{{ test_port }}"
+    username: "{{ test_username }}"
+    password: "{{ test_password }}"
+    enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
+    command_level: enable
+  register: cmd_fallback
+  tags: [jetstream_command, cmd_fallback, never]
+
+- name: "[command] Assert fallback ran show system-info"
+  ansible.builtin.assert:
+    that:
+      - cmd_fallback is not failed
+      - cmd_fallback.commands | length == 1
+      - cmd_fallback.commands[0].command == "show system-info"
+    fail_msg: "command fallback failed: {{ cmd_fallback.msg | default('no msg') }}"
+  tags: [jetstream_command, cmd_fallback, never]
+
+# ---------------------------------------------------------------------------
+
+- name: "[command] commands list overrides single command when both provided"
+  lachlanstone.jetstream.jetstream_command:
+    host: "{{ test_host }}"
+    port: "{{ test_port }}"
+    username: "{{ test_username }}"
+    password: "{{ test_password }}"
+    enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
+    command_level: enable
+    command: "show version"
+    commands:
+      - "show system-info"
+      - "show vlan"
+  register: cmd_override
+  tags: [jetstream_command, cmd_override, never]
+
+- name: "[command] Assert commands list took precedence (2 results not 1)"
+  ansible.builtin.assert:
+    that:
+      - cmd_override is not failed
+      - cmd_override.commands | length == 2
+    fail_msg: "commands override failed — expected 2 results, got {{ cmd_override.commands | length }}"
+  tags: [jetstream_command, cmd_override, never]
+
+# ---------------------------------------------------------------------------
+
+- name: "[command] check_mode exits without running commands"
+  lachlanstone.jetstream.jetstream_command:
+    host: "{{ test_host }}"
+    port: "{{ test_port }}"
+    username: "{{ test_username }}"
+    password: "{{ test_password }}"
+    enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
+    command_level: enable
+    command: "show system-info"
+  check_mode: true
+  register: cmd_check_mode
+  tags: [jetstream_command, cmd_check_mode, never]
+
+- name: "[command] Assert check_mode returned without failure"
+  ansible.builtin.assert:
+    that:
+      - cmd_check_mode is not failed
+      - cmd_check_mode.changed == false
+    fail_msg: "command check_mode failed: {{ cmd_check_mode.msg | default('no msg') }}"
+  tags: [jetstream_command, cmd_check_mode, never]
+
+# ---------------------------------------------------------------------------
+
+- name: "[command] Assert return structure — parsed key present on key-value output"
+  ansible.builtin.assert:
+    that:
+      - cmd_single.commands[0].stdout is string
+      - cmd_single.commands[0].stdout_lines is sequence
+    fail_msg: "command return structure invalid"
+  tags: [jetstream_command, cmd_return_structure, never]
+
+# ---------------------------------------------------------------------------
+# BAD DATA
+# ---------------------------------------------------------------------------
+
+- name: "[command][bad_data] Invalid command_level value — expect Ansible arg validation failure"
+  lachlanstone.jetstream.jetstream_command:
+    host: "{{ test_host }}"
+    port: "{{ test_port }}"
+    username: "{{ test_username }}"
+    password: "{{ test_password }}"
+    enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
+    command_level: superuser
+    command: "show version"
+  register: cmd_bad_level
+  ignore_errors: true
+  tags: [jetstream_command, bad_data, never]
+
+- name: "[command][bad_data] Assert invalid command_level caused failure"
+  ansible.builtin.assert:
+    that:
+      - cmd_bad_level is failed
+    fail_msg: "Expected failure for invalid command_level but task succeeded"
+  tags: [jetstream_command, bad_data, never]

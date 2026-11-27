@@ -108,6 +108,48 @@ class TestDiffInterface(unittest.TestCase):
         )
         self.assertIsNone(diff_interface(desired, config, running))
 
+    def test_pvid_one_matches_omitted_running_config(self):
+        desired = _desired({"pvid": 1})
+        config = InterfaceConfig("Tw1/0/1", "Enable", "Auto", "Auto", "Disable", "")
+        running = RunningConfigInterface(
+            name="1/0/1", port_type="two-gigabitEthernet"
+        )
+        self.assertIsNone(diff_interface(desired, config, running))
+
+    def test_vlan_membership_is_additive(self):
+        desired = _desired({"vlans_tagged": [20]})
+        config = InterfaceConfig("Tw1/0/1", "Enable", "Auto", "Auto", "Disable", "")
+        running = RunningConfigInterface(
+            name="1/0/1", port_type="two-gigabitEthernet", vlans_tagged=[11]
+        )
+        self.assertEqual(
+            diff_interface(desired, config, running),
+            {
+                "name": "1/0/1",
+                "port_type": "two-gigabitEthernet",
+                "description": "",
+                "vlans_tagged": [20],
+            },
+        )
+
+        # The switch keeps 11 and adds 20; the second run must converge.
+        running_after = RunningConfigInterface(
+            name="1/0/1",
+            port_type="two-gigabitEthernet",
+            vlans_tagged=[11, 20],
+        )
+        self.assertIsNone(diff_interface(desired, config, running_after))
+
+    def test_disabled_vlans_are_additive(self):
+        desired = _desired({"vlans_disabled": [11]})
+        config = InterfaceConfig("Tw1/0/1", "Enable", "Auto", "Auto", "Disable", "")
+        running = RunningConfigInterface(
+            name="1/0/1",
+            port_type="two-gigabitEthernet",
+            vlans_disabled=[11, 12],
+        )
+        self.assertIsNone(diff_interface(desired, config, running))
+
     def test_speed_normalisation(self):
         # Module token '10000' == switch display '10G'.
         desired = _desired({"speed": "10000"})
@@ -288,6 +330,32 @@ class TestRunModule(unittest.TestCase):
                         run_module(module)
                 configure.assert_not_called()
                 module.exit_json.assert_not_called()
+
+    def test_check_mode_skips_config_mode(self):
+        module = MagicMock()
+        module.params = {"host": "192.0.2.10", "interfaces": []}
+        module.check_mode = True
+        module._verbosity = 0
+
+        conn = MagicMock()
+        conn.__enter__.return_value = conn
+
+        with patch(
+            "plugins.modules.jetstream_interfaces_v2.build_device", return_value={}
+        ), patch(
+            "plugins.modules.jetstream_interfaces_v2.ConnectHandler",
+            return_value=conn,
+        ), patch(
+            "plugins.modules.jetstream_interfaces_v2.get_interface_configuration",
+            return_value=[],
+        ), patch(
+            "plugins.modules.jetstream_interfaces_v2.get_running_config",
+            return_value=[],
+        ):
+            run_module(module)
+
+        conn.config_mode.assert_not_called()
+        module.exit_json.assert_called_once()
 
 
 if __name__ == "__main__":

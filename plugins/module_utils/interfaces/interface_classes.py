@@ -306,17 +306,22 @@ def diff_interface(desired: dict, config=None, running=None):
     pvid = desired.get("pvid")
     if pvid is not None:
         current_pvid = running.pvid if running is not None else None
+        # A physical port with no ``switchport pvid`` line is on VLAN 1.
+        if running is not None and current_pvid is None:
+            current_pvid = 1
         if current_pvid != pvid:
             delta["pvid"] = pvid
             changed = True
 
-    # VLAN membership — order-insensitive.
+    # VLAN membership is additive: the requested set must already be present.
+    # The builder can only add allowed/removed VLANs, so an equality check
+    # would resend the same commands on every run and never converge.
     for key in _VLAN_FIELDS:
         desired_vlans = desired.get(key) or []
         if not desired_vlans:
             continue
         current_vlans = getattr(running, key, []) if running is not None else []
-        if set(desired_vlans) != set(current_vlans):
+        if not set(desired_vlans).issubset(set(current_vlans)):
             delta[key] = list(desired_vlans)
             changed = True
 

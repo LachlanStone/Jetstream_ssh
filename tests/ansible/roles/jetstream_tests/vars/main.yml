@@ -1,0 +1,38 @@
+---
+# =============================================================================
+# jetstream_tests role — fixed vars (not intended to be overridden)
+#
+# These are shared connection anchor and constants that tasks reference.
+# =============================================================================
+
+# Shared connection dict — referenced via YAML anchors inside task files
+# (task files must redeclare the anchor; vars_files cannot export anchors,
+# but we keep the mapping here for single-source clarity).
+_conn:
+  host: "{{ test_host }}"
+  port: "{{ test_port }}"
+  username: "{{ test_username }}"
+  password: "{{ test_password }}"
+  enable_password: "{{ test_enable_password }}"
+
+# All privilege levels the user module supports
+jetstream_privilege_levels:
+  - admin
+  - guest
+  - operator
+  - power_user
+  - user
+
+# All protocol_name values the acls module supports
+jetstream_protocol_names:
+  - ICMP
+  - IGMP
+  - TCP
+  - UDP
+  - IPV6
+  - ESP
+  - AH
+  - OSPF
+
+# Protocol numbers that allow dport (TCP=6, UDP=17)
+jetstream_dport_protocols: [6, 17]

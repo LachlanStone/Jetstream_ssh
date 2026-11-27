@@ -94,6 +94,6 @@ Any exception (SSH failure, authentication failure, read timeout, command error)
 
 ## Limitations
 
-- **Always reports a change.** There is no comparison between running and startup config.
+- **Always reports a change on a real run.** There is no comparison between running and startup config; check mode reports `changed: false` and sends nothing.
 - **No verification.** The module does not check the switch output for success; it records `stdout` only.
 - **Command choice is firmware dependent.** If `write` fails on your switch, use the default.

@@ -1,0 +1,129 @@
+---
+# =============================================================================
+# MODULE: jetstream_save
+# Tests: default command (copy running-config startup-config), write command,
+#        check_mode (no actual save performed)
+# Bad data: invalid command choice
+# =============================================================================
+
+# ---------------------------------------------------------------------------
+# HAPPY PATH — default save command
+# ---------------------------------------------------------------------------
+
+- name: "[save] Save config — default command (copy running-config startup-config)"
+  lachlanstone.jetstream.jetstream_save:
+    host: "{{ test_host }}"
+    port: "{{ test_port }}"
+    username: "{{ test_username }}"
+    password: "{{ test_password }}"
+    enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
+  register: save_default
+  tags: [jetstream_save, save_default, never]
+
+- name: "[save] Assert default save succeeded with changed=true"
+  ansible.builtin.assert:
+    that:
+      - save_default is not failed
+      - save_default.changed == true
+      - save_default.cmd is defined
+    fail_msg: "save default failed: {{ save_default.msg | default('no msg') }}"
+  tags: [jetstream_save, save_default, never]
+
+- name: "[save] Assert default save used the correct command"
+  ansible.builtin.assert:
+    that:
+      - "'copy running-config startup-config' in save_default.cmd or
+         save_default.steps | selectattr('name', 'equalto', 'save_config') |
+         map(attribute='command') | first | default('') is search('copy running-config startup-config')"
+    fail_msg: "Default save did not use 'copy running-config startup-config'"
+  tags: [jetstream_save, save_default, never]
+
+# ---------------------------------------------------------------------------
+# HAPPY PATH — write command
+# ---------------------------------------------------------------------------
+
+- name: "[save] Save config — write command"
+  lachlanstone.jetstream.jetstream_save:
+    host: "{{ test_host }}"
+    port: "{{ test_port }}"
+    username: "{{ test_username }}"
+    password: "{{ test_password }}"
+    enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
+    command: "write"
+  register: save_write
+  tags: [jetstream_save, save_write, never]
+
+- name: "[save] Assert write command save succeeded"
+  ansible.builtin.assert:
+    that:
+      - save_write is not failed
+      - save_write.changed == true
+    fail_msg: "save write failed: {{ save_write.msg | default('no msg') }}"
+  tags: [jetstream_save, save_write, never]
+
+# ---------------------------------------------------------------------------
+# HAPPY PATH — check_mode
+# ---------------------------------------------------------------------------
+
+- name: "[save] Check mode — no save executed"
+  lachlanstone.jetstream.jetstream_save:
+    host: "{{ test_host }}"
+    port: "{{ test_port }}"
+    username: "{{ test_username }}"
+    password: "{{ test_password }}"
+    enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
+  check_mode: true
+  register: save_check
+  tags: [jetstream_save, save_check_mode, never]
+
+- name: "[save] Assert check_mode reported no change"
+  ansible.builtin.assert:
+    that:
+      - save_check is not failed
+      - save_check.check_mode == true
+      - save_check.changed == false
+    fail_msg: "save check_mode failed: {{ save_check.msg | default('no msg') }}"
+  tags: [jetstream_save, save_check_mode, never]
+
+# ---------------------------------------------------------------------------
+# RETURN STRUCTURE assertions
+# ---------------------------------------------------------------------------
+
+- name: "[save] Assert return structure contains required keys"
+  ansible.builtin.assert:
+    that:
+      - save_default.msg is defined
+      - save_default.switch is defined
+      - save_default.changed is defined
+      - save_default.check_mode is defined
+      - save_default.cmd is defined
+      - save_default.steps is defined
+    fail_msg: "save return structure missing expected keys"
+  tags: [jetstream_save, save_return_structure, never]
+
+# ---------------------------------------------------------------------------
+# BAD DATA
+# ---------------------------------------------------------------------------
+
+- name: "[save][bad_data] Invalid command choice — expect Ansible validation failure"
+  lachlanstone.jetstream.jetstream_save:
+    host: "{{ test_host }}"
+    port: "{{ test_port }}"
+    username: "{{ test_username }}"
+    password: "{{ test_password }}"
+    enable_password: "{{ test_enable_password }}"
+    read_timeout: "{{ test_read_timeout }}"
+    command: "save now"
+  register: save_bad_cmd
+  ignore_errors: true
+  tags: [jetstream_save, bad_data, never]
+
+- name: "[save][bad_data] Assert invalid command choice failed"
+  ansible.builtin.assert:
+    that:
+      - save_bad_cmd is failed
+    fail_msg: "Expected failure for invalid save command but task succeeded"
+  tags: [jetstream_save, bad_data, never]
